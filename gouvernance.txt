@@ -1,0 +1,194 @@
+---
+
+## CADRE DES RÉUNIONS
+
+### 1. Comité de Pilotage Stratégique
+Fréquence : Trimestrielle
+Durée : 2 heures
+Participants : Sponsor client, Direction prestataire, Chef de projet
+
+Objectifs :
+- Revue stratégique de la collaboration
+- Validation de la roadmap
+- Suivi budget et ROI
+
+Livrables :
+- Compte-rendu rédigé par le prestataire sous 48h
+- Plan d'action validé
+
+
+### 2. Comité Opérationnel
+Fréquence : Mensuelle
+Durée : 1h30
+Participants : Chef de projet client, Account Manager, Tech Lead
+
+Objectifs :
+- Suivi de l'avancement des projets
+- Résolution des blocages
+- Validation des livrables du mois
+
+Livrables :
+- Compte-rendu rédigé par le prestataire sous 24h
+- Tableau de bord actualisé
+
+
+### 3. Revue de Roadmap
+Fréquence : Bimestrielle
+Durée : 2 heures
+Participants : Product Owner, Tech Lead prestataire, Architecte
+
+Objectifs :
+- Priorisation des features
+- Revue et priorisation des RFE
+- Planning des releases
+
+Livrables :
+- Roadmap mise à jour
+- Compte-rendu rédigé par le prestataire sous 48h
+
+
+### 4. Point Technique
+Fréquence : Bi-hebdomadaire
+Durée : 45 minutes
+Participants : Équipe projet, Tech Lead prestataire
+
+Objectifs :
+- Avancement des développements
+- Revue des RFE en cours
+- Revue des bugs remontés
+- Points de coordination technique
+
+Livrables :
+- Document de suivi des RFE et bugs rédigé par le prestataire sous 24h
+- Liste des actions correctives et préventives avec échéances
+- État d'avancement de chaque RFE et bug
+
+
+---
+
+## PROCESSUS RFE (REQUEST FOR EVOLUTION)
+
+Étape 1 : Soumission RFE
+Responsable : Client
+Action : Remplir le formulaire RFE avec description détaillée du besoin
+SLA : N/A
+
+Étape 2 : Accusé de réception
+Responsable : Prestataire
+Action : Confirmation de réception et assignation d'une référence unique
+SLA : 24 heures
+
+Étape 3 : Analyse de faisabilité
+Responsable : Prestataire
+Action : Étude technique et estimation de la charge
+SLA : 5 jours ouvrés
+
+Étape 4 : Priorisation
+Responsable : Comité (Client + Prestataire)
+Action : Validation et intégration dans la roadmap
+SLA : Prochaine revue de roadmap
+
+Étape 5 : Développement
+Responsable : Prestataire
+Action : Réalisation selon le planning validé
+SLA : Selon priorisation
+
+Étape 6 : Recette et Déploiement
+Responsable : Client + Prestataire
+Action : Tests, validation et mise en production
+SLA : Selon planning validé
+
+
+---
+
+## LIVRABLES ATTENDUS
+
+### Comptes-rendus de réunion
+Fréquence : Après chaque réunion
+Responsable : Prestataire
+Délai : 24h pour points techniques et comité opérationnel, 48h pour autres réunions
+Format : Document partagé incluant participants, décisions prises, actions identifiées, responsables, échéances et prochaines étapes
+
+
+### Document de suivi RFE et bugs
+Fréquence : Bi-hebdomadaire (suite au point technique)
+Responsable : Prestataire
+Délai : 24h après le point technique
+Format : Tableau avec référence, description, statut, actions en cours, responsable, échéance, priorité
+
+
+### Tableau de bord mensuel
+Fréquence : Mensuelle
+Responsable : Prestataire
+Délai : 5 jours ouvrés après la fin du mois
+Format : KPI de performance, avancement des projets, incidents survenus, consommation budgétaire, RFE en cours
+
+
+### Roadmap produit
+Fréquence : Bimestrielle
+Responsable : Prestataire
+Délai : Avant chaque revue de roadmap
+Format : Planning des features, releases prévues, dépendances identifiées, allocation des ressources
+
+
+### Rapport d'incidents
+Fréquence : Hebdomadaire
+Responsable : Prestataire
+Délai : Chaque lundi 10h
+Format : Liste des incidents de la semaine, statut de résolution, actions correctives, impacts métier
+
+
+### Bilan trimestriel
+Fréquence : Trimestrielle
+Responsable : Prestataire
+Délai : 10 jours avant le comité de pilotage
+Format : Synthèse des réalisations, KPI du trimestre, suivi budgétaire, recommandations stratégiques
+
+
+### Documentation technique
+Fréquence : À chaque livraison majeure
+Responsable : Prestataire
+Délai : Livrée avec la release
+Format : Architecture, documentation API, guides utilisateur, release notes
+
+
+---
+
+## INDICATEURS DE PERFORMANCE (KPI)
+
+Disponibilité du service
+Cible : 99,5%
+Fréquence de suivi : Mensuelle
+
+Temps de réponse aux incidents
+Cible : Moins de 4 heures pour incidents critiques
+Fréquence de suivi : Continue
+
+Respect des délais de livrables
+Cible : 95%
+Fréquence de suivi : Mensuelle
+
+Taux de résolution des RFE
+Cible : 80% des RFE résolus dans le trimestre
+Fréquence de suivi : Trimestrielle
+
+Satisfaction des utilisateurs
+Cible : Supérieure à 4/5
+Fréquence de suivi : Semestrielle
+
+Qualité des comptes-rendus
+Cible : Livrés dans les délais et complets
+Fréquence de suivi : Continue
+
+
+---
+
+## NOTES IMPORTANTES
+
+Ce template doit être adapté selon les spécificités de chaque contrat fournisseur.
+
+Les fréquences et délais peuvent être ajustés en fonction de la criticité du service et de la phase du projet.
+
+Tous les comptes-rendus et documents de suivi sont sous la responsabilité du prestataire.
+
+Les RFE et bugs doivent faire l'objet d'un suivi rigoureux lors des points techniques bi-hebdomadaires.
