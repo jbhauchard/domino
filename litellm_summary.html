@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LiteLLM & temperature=0.0 — Non-determinism Summary</title>
+<style>
+  @media print { body { font-size: 11pt; } }
+  body { font-family: Georgia, serif; max-width: 760px; margin: 40px auto; color: #222; line-height: 1.7; padding: 0 20px; }
+  h1 { font-size: 1.8em; color: #1a1a2e; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+  h2 { font-size: 1.2em; color: #1a1a2e; margin-top: 2em; }
+  .subtitle { color: #666; font-style: italic; margin-top: -10px; margin-bottom: 30px; }
+  pre, code { font-family: 'Courier New', monospace; background: #f8f8f8; color: #c0392b; border-radius: 4px; }
+  pre { padding: 10px 14px; overflow-x: auto; font-size: 0.88em; }
+  code { padding: 1px 4px; font-size: 0.9em; }
+  .verdict { background: #eafaf1; border-left: 4px solid #27ae60; padding: 12px 16px; border-radius: 4px; font-weight: bold; color: #1a6b3a; margin-top: 2em; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 8px; }
+  .label { font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>LiteLLM &amp; temperature=0.0</h1>
+<p class="subtitle">Non-determinism: causes, diagnosis, and evidence</p>
+
+<h2>1. Is LiteLLM silently changing 0.0 → 0.1?</h2>
+<p>Unlikely, but easy to rule out. Enable verbose logging to inspect the exact payload sent to the provider:</p>
+<pre>import litellm
+litellm.set_verbose = True
+response = litellm.completion(model="...", messages=[...], temperature=0.0)</pre>
+<p>The log shows the raw JSON. Confirm <code>temperature</code> is <code>0.0</code>. You can also check LiteLLM's source (<code>litellm/main.py</code>) for any temperature transformation logic.</p>
+
+<h2>2. More Likely Culprits</h2>
+<ul>
+  <li><span class="label">Server-side non-determinism (most likely).</span> Providers like OpenAI document that even at temperature=0, outputs are not guaranteed deterministic due to GPU cluster parallelism. A stable A/B pattern is a classic symptom of two distinct backends serving your requests.</li>
+  <li><span class="label">Different model versions behind an alias.</span> Aliases like <code>gpt-4</code> or <code>claude-3-5-sonnet</code> may silently route to different underlying checkpoints depending on provider load or rollout strategy.</li>
+  <li><span class="label">Prompt variability.</span> Any injected timestamps, session IDs, or dynamic context will shift the output even at temperature=0.</li>
+</ul>
+
+<h2>3. How to Build Evidence for FP Non-Determinism</h2>
+
+<p><strong>Step 1 — Characterise the distribution.</strong><br>
+Run the same fixed prompt ~50 times and count outcomes. True floating-point noise produces rare, random divergences. A stable bimodal split (always A or B, never C) strongly suggests two distinct backends, not FP noise.</p>
+
+<p><strong>Step 2 — Check <code>system_fingerprint</code> (the smoking gun).</strong></p>
+<pre>print(response.system_fingerprint)  # OpenAI includes this per response
+print(response._hidden_params)       # LiteLLM metadata</pre>
+<p>OpenAI's <code>system_fingerprint</code> changes when server configuration changes. If two distinct fingerprints correlate perfectly with answers A and B, the cause is backend routing — not floating-point arithmetic.</p>
+
+<p><strong>Step 3 — Isolate with a local model.</strong><br>
+Run the same model locally (e.g. via <code>llama.cpp</code> or <code>vllm</code>) with a fixed seed and temperature=0. If you get 100% answer A locally but A/B from the cloud provider, the non-determinism is definitively server-side infrastructure.</p>
+
+<div class="verdict">
+  Bottom line: check <code>response.system_fingerprint</code>. A stable A/B pattern almost always means you are being routed to two different backend servers — not floating-point non-determinism.
+</div>
+</body>
+</html>
