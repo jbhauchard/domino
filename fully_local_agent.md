@@ -646,7 +646,7 @@ cp ~/.ssh/id_ed25519.pub share/ssh.pub   # or id_rsa.pub
 <details markdown="1">
 <summary>What's in the VM, and which picoclaw is it?</summary>
 
-bash (not brew, brew doesn't do NetBSD), git, curl, python + pip + uv, vim, jq, ripgrep, fd, w3m and gh. The package manager is `pkgin`: to add something for good, add it to the `RUN pkgin ... in` line of `smolerfiles/Dockerfile.clawd` and rebuild. A rebuild wipes the VM, so copy `~/.picoclaw` to `/mnt` first if you care about it (`cp -a ~/.picoclaw /mnt/picoclaw-backup`).
+bash (not brew, brew doesn't do NetBSD), git, curl, python + pip + uv, vim, jq, ripgrep, fd, w3m and gh. The package manager is `pkgin`: to add something for good, add it to the `RUN pkgin ... in` line of `smolerfiles/Dockerfile.clawd` and rebuild. A rebuild wipes the VM, so save `~/.picoclaw` first if you care about it: chapter 3 has a one-paste script for that ("Save and restore the agent"), or just `cp -a ~/.picoclaw /mnt/picoclaw-backup`.
 
 picoclaw itself is a NetBSD build from [afjcjsbx's releases](https://github.com/afjcjsbx/picoclaw/releases) of [sipeed/picoclaw](https://github.com/sipeed/picoclaw), and the VM updates it at every boot (`picoclaw-install`). So the version moves; check yours with `picoclaw version`.
 
@@ -737,46 +737,160 @@ Or the web UI: `picoclaw-launcher -public` in the VM, then http://127.0.0.1:1880
 Heads up: picoclaw runs its tools without asking you. It's kept in its workspace (`restrict_to_workspace`) and blocks the obvious nonsense (`rm -rf`, `sudo`, `curl | sh`...), but that's a seatbelt, not a cage. The cage is the VM. Watch what it does before giving it more.
 
 <details markdown="1">
-<summary>The agent loops on "Command blocked by safety guard (path outside working dir)"?</summary>
+<summary>The agent loops on "blocked by safety guard", "access denied" or "path escapes workspace"?</summary>
 
-While `restrict_to_workspace` is `true`, `exec` refuses any command that mentions an absolute path outside the workspace: `/tmp/x.json`, `/usr/share/...`, `/etc/...`, `/mnt`. Small models love `/tmp`, get refused, and retry the same thing with tiny changes until the tool-call limit (50 by default). Plain commands (`date`, `cal`, `python3 -c`, `curl https://...`) are not affected. Two fixes, together.
+While `restrict_to_workspace` is `true` (the default), picoclaw refuses absolute paths outside the workspace in **three** places, and `..` in a command. Each has its own message:
 
-**1. Let the harmless system folders through, and cap a runaway loop.** (`/mnt`, your shared folder, stays blocked. The list is named `allow_read_paths` but `exec` applies it to any path in a command, so it also lets `exec` write there: fine for `/tmp` in a throwaway VM.)
+| What the model did | What you see |
+|---|---|
+| ran a command that mentions `/tmp/x.json`, `/usr/...`, `/proc/...`, `/mnt/...` | `Command blocked by safety guard (path outside working dir)` |
+| asked `exec` to run in another folder (`cwd` = `/`...) | `Command blocked by safety guard (access denied: path is outside the workspace)` |
+| `read_file` / `list_dir` on `/`, `/mnt`, `/proc/meminfo`... | `path escapes workspace: /proc/meminfo` |
+| used `../` anywhere in a command | `Command blocked by safety guard (path traversal detected)` |
+
+Small models try `/tmp`, `/proc/meminfo` (that's Linux; the VM is NetBSD), `ls /`, get refused, and retry tiny variations until the tool-call limit (50 by default). Plain commands (`date`, `cal`, `python3 -c`, `curl https://...`) are not affected. Note that the guard reads the **whole text** of a command: a script written with a shell heredoc is refused if the script mentions a path, even if the file is harmless. The agent has to create files with `write_file`. Two fixes, together (and a third, optional).
+
+**1. Let the harmless system folders through, and cap a runaway loop.** One list, `tools.allow_read_paths`, covers the first three places above. This opens `/` itself (for `list_dir /`), `/tmp`, `/usr`, `/var`, `/bin`, `/sbin`, `/lib`, `/libexec`, `/etc` and `/proc`, and stops a loop after 15 tool calls. Still refused: `/mnt` (your shared folder, see 3 below), your home folder (that's where `~/.picoclaw/config.json`, with your keys, lives) and `/home`. Despite its name, `exec` also lets commands write in the listed folders (`write_file` still can't): fine for `/tmp` in a throwaway VM. Pasting this again is harmless.
 
 🦞 **in the VM**
 
 ```shell
 cd ~/.picoclaw &&
 cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
-jq '.tools.allow_read_paths = ["^/tmp(/|$)", "^/usr(/|$)", "^/etc/(os-release|localtime|timezone)$"]
+jq '.tools.allow_read_paths = ((.tools.allow_read_paths // []) + ["^/$", "^/(tmp|usr|var|bin|sbin|lib|libexec|etc|proc)(/|$)"] | unique)
     | .agents.defaults.max_tool_iterations = 15' config.json > config.json.new &&
 mv config.json.new config.json &&
 chmod 600 config.json &&
 echo "OK" ; cd ~
 ```
 
-**2. Tell the agent the house rules.** `USER.md` in the workspace is added to every prompt. This appends a few lines to it (once, a second paste does nothing):
+**2. Tell the agent the house rules.** `USER.md` in the workspace is added to every prompt. This writes a few lines into it. Paste it again later and it replaces its own section, so an older version of these rules never piles up:
 
 🦞 **in the VM**
 
 ```shell
 f=~/.picoclaw/workspace/USER.md
-grep -qs "House rules for the shell" "$f" || cat >> "$f" <<'EOF'
+mkdir -p ~/.picoclaw/workspace && touch "$f" &&
+{ awk '/^## House rules for the shell/{skip=1; next} /^## /{skip=0} !skip' "$f"
+  cat <<'EOF'
 
 ## House rules for the shell
 
-- Work inside your workspace, with relative paths. Scratch files go in ./tmp/ (mkdir -p tmp), not in /tmp.
-- If a command is refused ("blocked by safety guard"), do not retry it with small variations. Rewrite it once with relative paths. If that fails too, stop and tell me what you wanted to do.
-- For dates, holidays and calendars, use `date`, `cal`, or a short `python3 -c` with the standard library only. Do not download scripts.
+- This machine is NetBSD, not Linux: no /proc/meminfo, free, lscpu or apt. Use uname -a, sysctl hw.model hw.ncpu hw.physmem64, vmstat, df -h, ps aux.
+- Work in your workspace with relative paths, never with "..", and never pass a cwd to exec. Scratch files go in ./tmp/ (mkdir -p tmp).
+- exec always needs action "run" together with the command.
+- Create files with write_file, not with heredocs or echo redirections in exec.
+- If a command or tool is refused ("blocked by safety guard", "access denied", "path escapes workspace"), do not retry it with small variations. Try one different approach at most, then stop and tell me what you wanted to do.
+- For dates, holidays and calendars, use date, cal, or a short python3 -c with the standard library (datetime, calendar). If you need data from the web: curl -s URL | jq. Do not download scripts.
 - After 3 failed tool calls in a row, stop and ask me.
 EOF
+} | cat -s > "$f.new" &&
+mv "$f.new" "$f" &&
+echo "OK"
 ```
 
 Then restart what you were running (Ctrl-C, start `picoclaw agent` or `picoclaw gateway` again).
 
-To see which command it was trying, look at the `exec` calls in the chat (`tool_feedback`) or run with `--debug`.
+**3. Optional: let the agent use the shared folder `/mnt`.** Without this, it can't put a file there, which is the right default: whatever it writes in `/mnt` appears in the shared folder on your PC, and it could also read, overwrite or delete what you keep there. If you want it anyway (exports, downloads, a script you asked it to write), this adds `/mnt` for exec, `read_file`, `list_dir` **and** `write_file` / `edit_file`. It still can't read its own `~/.picoclaw` that way: to save the agent's config, use the script in the next fold, as yourself.
 
-The honest part: this guard is a text check, not a sandbox (it doesn't understand `~/` or `cd /`, for instance). It stops accidents, the VM stops the rest. The blunt alternative is `jq '.agents.defaults.restrict_to_workspace = false'`: `exec` and the file tools can then roam the whole VM, and the `rm -rf` & co deny patterns stay on.
+🦞 **in the VM**
+
+```shell
+cd ~/.picoclaw &&
+cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
+jq '.tools.allow_read_paths = ((.tools.allow_read_paths // []) + ["^/mnt(/|$)"] | unique)
+    | .tools.allow_write_paths = ((.tools.allow_write_paths // []) + ["^/mnt(/|$)"] | unique)' config.json > config.json.new &&
+mv config.json.new config.json &&
+chmod 600 config.json &&
+echo "OK" ; cd ~
+```
+
+If it still refuses something, the exact call is in the chat (`tool_feedback`) or in the `picoclaw agent --debug` output: look at the `exec`, `read_file` or `list_dir` line just before the error. The path in it is the one to add to the list.
+
+The honest part: this guard is a text check, not a sandbox. It doesn't understand `~/` or `cd /`, so `cat ~/.picoclaw/config.json` still works for the agent. The keys in that file (Strata, and the Telegram bot token if you did chapter 5) are the only secrets the VM holds: if you ever doubt the agent, change them. The guard stops accidents, the VM stops the rest. The blunt alternative is `jq '.agents.defaults.restrict_to_workspace = false'`: `exec` and the file tools can then roam the whole VM, `/mnt` included, and the `rm -rf` & co deny patterns stay on.
+
+</details>
+
+<details markdown="1">
+<summary>Save and restore the agent (so a bug or an update costs ten seconds)</summary>
+
+Everything that makes your agent *yours* (its config and keys, its memory, its skills, `USER.md`) lives in one folder, `~/.picoclaw`. The VM itself is disposable: a rebuild wipes it. This script, which **you** run in the VM (not the agent), packs that folder into the shared folder and puts it back, so that "kill the VM and start over" becomes: rebuild, restore, done. Saves land in `picoclaw-saves/` in the shared folder, so they are on your PC too.
+
+🦞 **in the VM**: create the script once (it goes in `/mnt`, so it survives rebuilds)
+
+```shell
+cat > /mnt/picoclaw-keep.sh <<'EOF'
+#!/bin/sh
+# picoclaw-keep.sh: save and restore the agent (config, memory, skills) in the shared folder.
+#   sh /mnt/picoclaw-keep.sh save [name]      save ~/.picoclaw (name defaults to the date and time)
+#   sh /mnt/picoclaw-keep.sh list             list the saves, newest first
+#   sh /mnt/picoclaw-keep.sh restore [name]   put a save back (newest if no name)
+# Run it as yourself in the VM, with picoclaw stopped (Ctrl-C) before a restore.
+# The saves contain your keys (config.json): keep the shared folder private.
+
+SRC="${PICOCLAW_DIR:-$HOME/.picoclaw}"
+DEST="${KEEP_DIR:-/mnt/picoclaw-saves}"
+
+die() { echo "ERROR: $*" >&2; exit 1; }
+
+latest() { ls -t "$DEST"/*.tgz 2>/dev/null | head -1; }
+
+case "$1" in
+  save)
+    [ -d "$SRC" ] || die "$SRC not found (did you run picoclaw onboard?)"
+    name="${2:-$(date +%Y%m%d-%H%M%S)}"
+    case "$name" in */*) die "no slash in the name" ;; esac
+    mkdir -p "$DEST" || die "cannot create $DEST (is the shared folder mounted on /mnt?)"
+    out="$DEST/$name.tgz"
+    [ -e "$out" ] && die "$out already exists, pick another name"
+    tar -C "$(dirname "$SRC")" -czf "$out" "$(basename "$SRC")" || die "tar failed"
+    chmod 600 "$out" 2>/dev/null
+    echo "saved: $out ($(du -h "$out" | cut -f1))"
+    ;;
+  list)
+    ls -t "$DEST"/*.tgz 2>/dev/null || echo "no saves in $DEST"
+    ;;
+  restore)
+    if [ -n "$2" ]; then f="$DEST/$2.tgz"; else f="$(latest)"; fi
+    [ -n "$f" ] && [ -f "$f" ] || die "no such save (try: sh $0 list)"
+    tar -tzf "$f" >/dev/null 2>&1 || die "$f is not a valid archive"
+    for p in picoclaw picoclaw-launcher; do
+      pgrep -x "$p" >/dev/null 2>&1 && die "$p is running: stop it (Ctrl-C) and restore again"
+    done
+    old=""
+    if [ -d "$SRC" ]; then
+      old="$SRC.before-restore-$(date +%Y%m%d-%H%M%S)"
+      [ -e "$old" ] && old="$old-$$"
+      mv "$SRC" "$old" || die "cannot move $SRC away"
+      echo "your current $SRC was kept as $old"
+    fi
+    tar -C "$(dirname "$SRC")" -xzf "$f" || die "tar failed${old:+, your previous folder is $old}"
+    chmod 600 "$SRC/config.json" 2>/dev/null
+    echo "restored: $f"
+    echo "now start picoclaw again"
+    ;;
+  *)
+    echo "usage: sh $0 save [name] | list | restore [name]" >&2
+    exit 1
+    ;;
+esac
+EOF
+echo "OK: now use  sh /mnt/picoclaw-keep.sh save"
+```
+
+(If `/mnt` answers "Permission denied", put the same text in a file named `picoclaw-keep.sh` in the `share/` folder on your PC instead.) Then, whenever you want:
+
+🦞 **in the VM**
+
+```shell
+sh /mnt/picoclaw-keep.sh save                  # before an update or an experiment
+sh /mnt/picoclaw-keep.sh save before-telegram  # or with a name of your own
+sh /mnt/picoclaw-keep.sh list                  # what do I have ?
+sh /mnt/picoclaw-keep.sh restore               # put the newest one back (stop picoclaw first)
+sh /mnt/picoclaw-keep.sh restore before-telegram
+```
+
+A restore keeps what it replaces: your current folder is moved aside to `~/.picoclaw.before-restore-<date>` first. After a rebuild: boot the new VM, `sh /mnt/picoclaw-keep.sh restore`, start picoclaw. What isn't saved: packages you added with `pkgin` (they go in the `Dockerfile.clawd` line instead, see chapter 2), and files you left outside `~/.picoclaw`.
 
 </details>
 
@@ -1062,7 +1176,8 @@ Other chat apps (Discord, Slack, Matrix...) are configured the same way, in `cha
 | `./smoler.sh run` can't find the image | the pull didn't finish | `./smoler.sh images`; if the list is empty, `pull` again (or `build`) |
 | `Could not set up host forwarding rule` | port 2289, 18789 or 18800 already used (another VM still running?) | `ss -tlnp \| grep -E '18789\|18800\|2289'` |
 | Agent says it has no model / wrong model | `agents.defaults.model_name` isn't a `model_list[].model_name` | both are `strata` in the block above; `jq '.agents.defaults, .model_list' ~/.picoclaw/config.json` |
-| Agent loops on "Command blocked by safety guard (path outside working dir)" | `exec` refuses absolute paths outside the workspace (`/tmp`, `/usr`...) and the model keeps retrying | the fold under "Talk to it" in chapter 3 |
+| Agent loops on "blocked by safety guard", "access denied", "path escapes workspace" or "path traversal" | picoclaw refuses absolute paths outside the workspace (`/tmp`, `/proc`, `/mnt`...) in `exec` commands, in `exec`'s `cwd`, and in `read_file` / `list_dir`, and `../` in any command; the model keeps retrying | the fold under "Talk to it" in chapter 3 |
+| I want my agent back after a rebuild, an update or a bug | its whole state is one folder, `~/.picoclaw`, and the VM is disposable | "Save and restore the agent", right after, in chapter 3 |
 | Answers, but never uses a tool | model not tool-capable (Ollama), or `exec`/`web` switched off | `picoclaw agent --debug -m "list your tools"` |
 | Web search finds nothing | DuckDuckGo disabled, or the VM has no internet | `jq .tools.web ~/.picoclaw/config.json`; `curl -sI https://duckduckgo.com` |
 | Telegram bot is silent | wrong token; `allow_from` isn't your numeric ID; gateway not running | `picoclaw gateway --debug`, read it |
