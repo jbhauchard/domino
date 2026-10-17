@@ -736,6 +736,50 @@ Or the web UI: `picoclaw-launcher -public` in the VM, then http://127.0.0.1:1880
 
 Heads up: picoclaw runs its tools without asking you. It's kept in its workspace (`restrict_to_workspace`) and blocks the obvious nonsense (`rm -rf`, `sudo`, `curl | sh`...), but that's a seatbelt, not a cage. The cage is the VM. Watch what it does before giving it more.
 
+<details markdown="1">
+<summary>The agent loops on "Command blocked by safety guard (path outside working dir)"?</summary>
+
+While `restrict_to_workspace` is `true`, `exec` refuses any command that mentions an absolute path outside the workspace: `/tmp/x.json`, `/usr/share/...`, `/etc/...`, `/mnt`. Small models love `/tmp`, get refused, and retry the same thing with tiny changes until the tool-call limit (50 by default). Plain commands (`date`, `cal`, `python3 -c`, `curl https://...`) are not affected. Two fixes, together.
+
+**1. Let the harmless system folders through, and cap a runaway loop.** (`/mnt`, your shared folder, stays blocked. The list is named `allow_read_paths` but `exec` applies it to any path in a command, so it also lets `exec` write there: fine for `/tmp` in a throwaway VM.)
+
+🦞 **in the VM**
+
+```shell
+cd ~/.picoclaw &&
+cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
+jq '.tools.allow_read_paths = ["^/tmp(/|$)", "^/usr(/|$)", "^/etc/(os-release|localtime|timezone)$"]
+    | .agents.defaults.max_tool_iterations = 15' config.json > config.json.new &&
+mv config.json.new config.json &&
+chmod 600 config.json &&
+echo "OK" ; cd ~
+```
+
+**2. Tell the agent the house rules.** `USER.md` in the workspace is added to every prompt. This appends a few lines to it (once, a second paste does nothing):
+
+🦞 **in the VM**
+
+```shell
+f=~/.picoclaw/workspace/USER.md
+grep -qs "House rules for the shell" "$f" || cat >> "$f" <<'EOF'
+
+## House rules for the shell
+
+- Work inside your workspace, with relative paths. Scratch files go in ./tmp/ (mkdir -p tmp), not in /tmp.
+- If a command is refused ("blocked by safety guard"), do not retry it with small variations. Rewrite it once with relative paths. If that fails too, stop and tell me what you wanted to do.
+- For dates, holidays and calendars, use `date`, `cal`, or a short `python3 -c` with the standard library only. Do not download scripts.
+- After 3 failed tool calls in a row, stop and ask me.
+EOF
+```
+
+Then restart what you were running (Ctrl-C, start `picoclaw agent` or `picoclaw gateway` again).
+
+To see which command it was trying, look at the `exec` calls in the chat (`tool_feedback`) or run with `--debug`.
+
+The honest part: this guard is a text check, not a sandbox (it doesn't understand `~/` or `cd /`, for instance). It stops accidents, the VM stops the rest. The blunt alternative is `jq '.agents.defaults.restrict_to_workspace = false'`: `exec` and the file tools can then roam the whole VM, and the `rm -rf` & co deny patterns stay on.
+
+</details>
+
 ---
 
 ## 4. Skills & tools
@@ -1018,6 +1062,7 @@ Other chat apps (Discord, Slack, Matrix...) are configured the same way, in `cha
 | `./smoler.sh run` can't find the image | the pull didn't finish | `./smoler.sh images`; if the list is empty, `pull` again (or `build`) |
 | `Could not set up host forwarding rule` | port 2289, 18789 or 18800 already used (another VM still running?) | `ss -tlnp \| grep -E '18789\|18800\|2289'` |
 | Agent says it has no model / wrong model | `agents.defaults.model_name` isn't a `model_list[].model_name` | both are `strata` in the block above; `jq '.agents.defaults, .model_list' ~/.picoclaw/config.json` |
+| Agent loops on "Command blocked by safety guard (path outside working dir)" | `exec` refuses absolute paths outside the workspace (`/tmp`, `/usr`...) and the model keeps retrying | the fold under "Talk to it" in chapter 3 |
 | Answers, but never uses a tool | model not tool-capable (Ollama), or `exec`/`web` switched off | `picoclaw agent --debug -m "list your tools"` |
 | Web search finds nothing | DuckDuckGo disabled, or the VM has no internet | `jq .tools.web ~/.picoclaw/config.json`; `curl -sI https://duckduckgo.com` |
 | Telegram bot is silent | wrong token; `allow_from` isn't your numeric ID; gateway not running | `picoclaw gateway --debug`, read it |
