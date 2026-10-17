@@ -739,7 +739,7 @@ Heads up: picoclaw runs its tools without asking you. It's kept in its workspace
 <details markdown="1">
 <summary>The agent loops on "blocked by safety guard", "access denied" or "path escapes workspace"?</summary>
 
-While `restrict_to_workspace` is `true` (the default), picoclaw refuses absolute paths outside the workspace in **three** places, and `..` in a command. Each has its own message:
+picoclaw's `exec` tool has several guards, each with its own message. The loop comes from a small model that doesn't know the rules and keeps retrying. With `restrict_to_workspace` on (the default), absolute paths outside the workspace are refused in **three** places, and `..` in a command is refused too. On top of that, a built-in deny list refuses some shell constructs, whatever the path:
 
 | What the model did | What you see |
 |---|---|
@@ -747,10 +747,11 @@ While `restrict_to_workspace` is `true` (the default), picoclaw refuses absolute
 | asked `exec` to run in another folder (`cwd` = `/`...) | `Command blocked by safety guard (access denied: path is outside the workspace)` |
 | `read_file` / `list_dir` on `/`, `/mnt`, `/proc/meminfo`... | `path escapes workspace: /proc/meminfo` |
 | used `../` anywhere in a command | `Command blocked by safety guard (path traversal detected)` |
+| used a construct from the deny list: `$(...)`, `${...}`, backticks, piping into `sh` or `bash`, `eval`, `source x.sh`, `kill`, `chmod 755`, `chown`, `sudo`, `rm -r`, `rm -f`, `git push`, `ssh user@host`... | `Command blocked by safety guard (dangerous pattern detected)` (it never says which one) |
 
-Small models try `/tmp`, `/proc/meminfo` (that's Linux; the VM is NetBSD), `ls /`, get refused, and retry tiny variations until the tool-call limit (50 by default). Plain commands (`date`, `cal`, `python3 -c`, `curl https://...`) are not affected. Note that the guard reads the **whole text** of a command: a script written with a shell heredoc is refused if the script mentions a path, even if the file is harmless. The agent has to create files with `write_file`. Two fixes, together (and a third, optional).
+Small models try `/tmp`, `/proc/meminfo` (that's Linux; the VM is NetBSD), `ls /`, get refused, and retry tiny variations until the tool-call limit (50 by default). Plain commands (`date`, `cal`, `python3 -c`, `curl https://...`) are not affected. Note that the guard reads the **whole text** of a command: a script written with a shell heredoc is refused if the script mentions a path, even if the file is harmless. The agent has to create files with `write_file`. (A `missing required property "action"` warning is harmless: the model forgot `action: "run"` and retries.) Two fixes, together, and two optional ones.
 
-**1. Let the harmless system folders through, and cap a runaway loop.** One list, `tools.allow_read_paths`, covers the first three places above. This opens `/` itself (for `list_dir /`), `/tmp`, `/usr`, `/var`, `/bin`, `/sbin`, `/lib`, `/libexec`, `/etc` and `/proc`, and stops a loop after 15 tool calls. Still refused: `/mnt` (your shared folder, see 3 below), your home folder (that's where `~/.picoclaw/config.json`, with your keys, lives) and `/home`. Despite its name, `exec` also lets commands write in the listed folders (`write_file` still can't): fine for `/tmp` in a throwaway VM. Pasting this again is harmless.
+**1. Let the harmless system folders through, and cap a runaway loop.** One list, `tools.allow_read_paths`, covers the first three places above. This opens `/` itself (for `list_dir /`), `/tmp`, `/usr`, `/var`, `/bin`, `/sbin`, `/lib`, `/libexec`, `/etc` and `/proc`, and stops a loop after 30 tool calls (a real task needs 10 to 20; if you see "I've reached `max_tool_iterations`", raise the number). Still refused: `/mnt` (your shared folder, see 3 below), your home folder (that's where `~/.picoclaw/config.json`, with your keys, lives) and `/home`. Despite its name, `exec` also lets commands write in the listed folders (`write_file` still can't): fine for `/tmp` in a throwaway VM. Pasting this again is harmless.
 
 🦞 **in the VM**
 
@@ -758,7 +759,7 @@ Small models try `/tmp`, `/proc/meminfo` (that's Linux; the VM is NetBSD), `ls /
 cd ~/.picoclaw &&
 cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
 jq '.tools.allow_read_paths = ((.tools.allow_read_paths // []) + ["^/$", "^/(tmp|usr|var|bin|sbin|lib|libexec|etc|proc)(/|$)"] | unique)
-    | .agents.defaults.max_tool_iterations = 15' config.json > config.json.new &&
+    | .agents.defaults.max_tool_iterations = 30' config.json > config.json.new &&
 mv config.json.new config.json &&
 chmod 600 config.json &&
 echo "OK" ; cd ~
@@ -780,7 +781,8 @@ mkdir -p ~/.picoclaw/workspace && touch "$f" &&
 - Work in your workspace with relative paths, never with "..", and never pass a cwd to exec. Scratch files go in ./tmp/ (mkdir -p tmp).
 - exec always needs action "run" together with the command.
 - Create files with write_file, not with heredocs or echo redirections in exec.
-- If a command or tool is refused ("blocked by safety guard", "access denied", "path escapes workspace"), do not retry it with small variations. Try one different approach at most, then stop and tell me what you wanted to do.
+- The shell refuses these, so do not type them: $(...), ${...}, backticks, piping into sh or bash, eval, source x.sh, kill, pkill, chmod 755 (chmod +x is fine), chown, sudo, rm -r, rm -f, git push, ssh user@host. Run commands one at a time and read their output, or use python3. To delete a file: rm file.
+- If a command or tool is refused ("blocked by safety guard", "dangerous pattern", "access denied", "path escapes workspace"), do not retry it with small variations. Try one different approach at most, then stop and tell me what you wanted to do.
 - For dates, holidays and calendars, use date, cal, or a short python3 -c with the standard library (datetime, calendar). If you need data from the web: curl -s URL | jq. Do not download scripts.
 - After 3 failed tool calls in a row, stop and ask me.
 EOF
@@ -805,9 +807,22 @@ chmod 600 config.json &&
 echo "OK" ; cd ~
 ```
 
-If it still refuses something, the exact call is in the chat (`tool_feedback`) or in the `picoclaw agent --debug` output: look at the `exec`, `read_file` or `list_dir` line just before the error. The path in it is the one to add to the list.
+**4. Optional, if the deny list keeps getting in the way: switch it off.** picoclaw has no switch for single patterns, it is all or nothing. Off, the constructs in the table work (`$(...)`, `kill`, `rm -r`...). Still on: the path guard (`restrict_to_workspace`), so the agent stays in its workspace and in the folders you opened above. In a VM that you can rebuild and restore (see the next fold), that is a fair deal. To go back, run it again with `true`.
 
-The honest part: this guard is a text check, not a sandbox. It doesn't understand `~/` or `cd /`, so `cat ~/.picoclaw/config.json` still works for the agent. The keys in that file (Strata, and the Telegram bot token if you did chapter 5) are the only secrets the VM holds: if you ever doubt the agent, change them. The guard stops accidents, the VM stops the rest. The blunt alternative is `jq '.agents.defaults.restrict_to_workspace = false'`: `exec` and the file tools can then roam the whole VM, `/mnt` included, and the `rm -rf` & co deny patterns stay on.
+🦞 **in the VM**
+
+```shell
+cd ~/.picoclaw &&
+cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
+jq '.tools.exec.enable_deny_patterns = false' config.json > config.json.new &&
+mv config.json.new config.json &&
+chmod 600 config.json &&
+echo "OK" ; cd ~
+```
+
+**Still refusing something?** The messages don't say which command it was. Start picoclaw with `picoclaw agent --debug` (or `picoclaw gateway --debug`): the line `Tool call: exec({...})` just before each error shows the exact command. That is also the best way to watch what the agent does before you give it more. For a path, the one to add to the list in part 1 is in that line.
+
+The honest part: this guard is a text check, not a sandbox. It doesn't understand `~/` or `cd /`, so `cat ~/.picoclaw/config.json` still works for the agent. The keys in that file (Strata, and the Telegram bot token if you did chapter 5) are the only secrets the VM holds: if you ever doubt the agent, change them. The guard stops accidents, the VM stops the rest. The blunt alternative is `jq '.agents.defaults.restrict_to_workspace = false'`: `exec` and the file tools can then roam the whole VM, `/mnt` included, and the `rm -rf` & co deny patterns stay on (part 4 turns those off).
 
 </details>
 
@@ -1176,7 +1191,7 @@ Other chat apps (Discord, Slack, Matrix...) are configured the same way, in `cha
 | `./smoler.sh run` can't find the image | the pull didn't finish | `./smoler.sh images`; if the list is empty, `pull` again (or `build`) |
 | `Could not set up host forwarding rule` | port 2289, 18789 or 18800 already used (another VM still running?) | `ss -tlnp \| grep -E '18789\|18800\|2289'` |
 | Agent says it has no model / wrong model | `agents.defaults.model_name` isn't a `model_list[].model_name` | both are `strata` in the block above; `jq '.agents.defaults, .model_list' ~/.picoclaw/config.json` |
-| Agent loops on "blocked by safety guard", "access denied", "path escapes workspace" or "path traversal" | picoclaw refuses absolute paths outside the workspace (`/tmp`, `/proc`, `/mnt`...) in `exec` commands, in `exec`'s `cwd`, and in `read_file` / `list_dir`, and `../` in any command; the model keeps retrying | the fold under "Talk to it" in chapter 3 |
+| Agent loops on "blocked by safety guard", "access denied", "path escapes workspace", "path traversal" or "dangerous pattern" | picoclaw refuses absolute paths outside the workspace (`/tmp`, `/proc`, `/mnt`...) in `exec` commands, in `exec`'s `cwd`, and in `read_file` / `list_dir`, and `../` in any command, plus a deny list of shell constructs (`$(...)`, `kill`, `rm -r`...); the model keeps retrying | the fold under "Talk to it" in chapter 3 |
 | I want my agent back after a rebuild, an update or a bug | its whole state is one folder, `~/.picoclaw`, and the VM is disposable | "Save and restore the agent", right after, in chapter 3 |
 | Answers, but never uses a tool | model not tool-capable (Ollama), or `exec`/`web` switched off | `picoclaw agent --debug -m "list your tools"` |
 | Web search finds nothing | DuckDuckGo disabled, or the VM has no internet | `jq .tools.web ~/.picoclaw/config.json`; `curl -sI https://duckduckgo.com` |
