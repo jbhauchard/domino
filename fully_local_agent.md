@@ -12,7 +12,7 @@ Everything on a gaming machine.
 └────────────────────────────────────┘         └───────────────────────────────────┘
 ```
 
-The plan: **0.** pick the disk for the big files → **1.** Strata → **2.** the microVM → **3.** plug the agent into Strata → **4.** skills & tools → **5.** Telegram.
+The plan: **0.** pick the disk for the big files → **1.** Strata → **2.** the microVM → **3.** plug the agent into Strata → **4.** skills, tools & a browser → **5.** Telegram → **6.** daily life (one command starts everything).
 
 Every block says where it runs: **🖥️ on your PC** (the Ubuntu one) or **🦞 in the VM** (the prompt looks like `[~]@😈+🦞>`). Blocks are meant to be pasted whole. Where you must change something, the line says `EDIT`, and the block refuses to run until you did. Sections folded under a ▶ are optional, or for when something breaks.
 
@@ -160,19 +160,12 @@ Install Strata (or ollama or _liteLLM_ or _vLLM_, if you know what you're doing.
 
 [Strata](https://github.com/Niko1221/Strata) wants a GPU with 12 GB of VRAM or more, 32 GB+ of RAM, and about 80 GB of free disk. It speaks the OpenAI API (`/v1`) and Anthropic's (`/v1/messages`).
 
-We put it on port 11434 (Ollama's usual port) instead of its default 8080. So if Ollama is installed, shut it up first, or the port is taken:
+We put it on port 11434 (Ollama's usual port) instead of its default 8080, so Ollama, if you have it, must not run. Strata also needs a working NVIDIA driver (version 580 or newer; the one from Ubuntu's own repository is fine). This frees the port and checks that your driver answers:
 
 🖥️ **on your PC**
 
 ```shell
-sudo systemctl disable --now ollama 2>/dev/null || true
-```
-
-Strata needs a working NVIDIA driver (version 580 or newer; the one from Ubuntu's own repository is fine). Check that yours answers:
-
-🖥️ **on your PC**
-
-```shell
+sudo systemctl disable --now ollama 2>/dev/null || true   # frees port 11434 (does nothing if you never had Ollama)
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 ```
 
@@ -242,19 +235,67 @@ printf 'STRATA_KEY=%s\n' "$STRATA_KEY" > ~/.strata-key && chmod 600 ~/.strata-ke
 printf 'Write that down !\nSTRATA_KEY=%s\n(also saved in ~/.strata-key)\n' "$STRATA_KEY"
 
 cd "${LLM_DIR:?do chapter 0 first}" && { [ -d Strata ] || git clone https://github.com/Niko1221/Strata; } && cd Strata &&
-./setup.sh --setup --host "$STRATA_HOST" --port "$STRATA_PORT" --api-key "$STRATA_KEY" --data-dir "$LLM_DIR/Strata-data"
+./setup.sh --setup --host "$STRATA_HOST" --port "$STRATA_PORT" --api-key "$STRATA_KEY" --data-dir "$LLM_DIR/Strata-data" --no-browser
 ```
 
-It asks which model size, how much context and if it should read pictures: Enter gives the recommended answer. Then it downloads ~70 GB into `$LLM_DIR/Strata-data` and starts. Next time, just `. ~/.llm-dir; cd "$LLM_DIR/Strata" && ./setup.sh`. If it keeps the terminal, leave it there and open another one (or use `tmux`) for the rest.
+It asks which model size, how much context and if it should read pictures: Enter gives the recommended answer. Then it downloads ~70 GB into `$LLM_DIR/Strata-data` and starts (`--no-browser`: it won't open its own chat page every time). It keeps the terminal: leave it there and open another one for the rest. Next time you don't need to remember anything: chapter 6 starts it for you (by hand it is `. ~/.llm-dir; cd "$LLM_DIR/Strata" && ./setup.sh`).
 
-Check that it answers (it lists the model):
+<details markdown="1">
+<summary>It stops on "error: calling a __device__ function ... __half_as_ushort" (the engine does not compile)</summary>
+
+On Ubuntu, Strata compiles its engine itself, with the CUDA 12.0 that comes from apt (its log says `build tools present (CUDA 12.0)`). Since Strata 0.1.45 (October 2026) one debug print in `src/qwen35/q36_engine.cu` calls a CUDA function that this old toolkit only accepts on the GPU side, so the compile stops with:
+
+```
+src/qwen35/q36_engine.cu(1659): error: calling a __device__ function("__half_as_ushort(    ::__half)") from a __host__ function("verify_q8") is not allowed
+```
+
+This is a bug in Strata (newer CUDA toolkits accept the line), not something you did. What you see depends on the moment: on a **fresh install** the setup stops (`Setup stopped`). On an **update** (`./update.sh`, or a `./setup.sh` after a `git pull`) Strata says `could not compile the updated engine: starting the installed one`: nothing is lost and the old engine keeps working, but each start tries the compile again, for a few minutes, and fails again.
+
+The fix is one line, in that debug print only (the model and its answers are not touched). Paste this; pasting it twice is harmless, and it says so when there is nothing left to fix:
+
+🖥️ **on your PC**
+
+```shell
+. ~/.llm-dir
+F="${LLM_DIR:?do chapter 0 first}/Strata/src/qwen35/q36_engine.cu"
+if grep -q '__half_as_ushort(__float2half(t\[0\]))' "$F"; then
+  sed -i 's/(unsigned) __half_as_ushort(__float2half(t\[0\]))/(unsigned) ((__half_raw) __float2half(t[0])).x/' "$F" &&
+  echo "FIXED. Fresh install: paste the install block above again (it resumes). Existing install: cd \"\$LLM_DIR/Strata\" && ./update.sh"
+else
+  echo "Nothing to fix: that line is not in your Strata (fixed upstream?). If the error is the same, report it at https://github.com/Niko1221/Strata/issues"
+fi
+```
+
+The compile then takes a few minutes. Later, as soon as Strata changes that same file (it does so often, and a fix for this bug would too), `./update.sh` stops with "Your local changes ... would be overwritten" and updates nothing. Give the file back first, then update:
+
+🖥️ **on your PC**
+
+```shell
+. ~/.llm-dir; cd "$LLM_DIR/Strata" && git checkout -- src/qwen35/q36_engine.cu && ./update.sh
+```
+
+If the same error comes back, Strata has not fixed it yet: paste the fix block again.
+
+</details>
+
+#### Check that it answers
+
+In another terminal on your PC. This asks Strata for its model, and prints the two lines the VM will need in chapter 3 (your PC's address on your home network, and the key). Keep that output at hand:
 
 🖥️ **on your PC**
 
 ```shell
 . ~/.strata-key
-curl -s http://127.0.0.1:11434/v1/models -H "Authorization: Bearer $STRATA_KEY"
+PC_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+echo "== Strata's model (an id below means it works):"
+curl -s --max-time 10 http://127.0.0.1:11434/v1/models -H "Authorization: Bearer $STRATA_KEY" | grep -o '"id": *"[^"]*"' || echo "   no answer yet: still loading? see the fold below"
+echo
+echo "== For chapter 3, the first two lines of the VM block:"
+echo "PC_IP=${PC_IP:-NO-NETWORK}"
+echo "STRATA_KEY=$STRATA_KEY"
 ```
+
+Your router may hand out another address to your PC after a reboot: give it a fixed one (a "DHCP reservation" in the router), or redo this block and the config of chapter 3 when it changes.
 
 <details markdown="1">
 <summary>Already have Strata? Or no answer? Listening checks and the firewall</summary>
@@ -299,18 +340,6 @@ Note: same port as Ollama, but not the same language. Strata speaks OpenAI's API
 
 </details>
 
-#### Find your PC's address
-
-The VM will need your PC's address on your home network, something like `192.168.1.53` (no `/24` or anything after):
-
-🖥️ **on your PC**
-
-```shell
-ip -4 route get 1.1.1.1 | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}'
-```
-
-Write it down too. Your router may hand out another one after a reboot: give your PC a fixed address (a "DHCP reservation" in the router), or you will redo the config below.
-
 ### Another model: Huihui QFN
 
 <details markdown="1">
@@ -327,93 +356,74 @@ Start with `UD-IQ4_XS`. The files are in the repository's `unsloth-UD-IQ4_XS/` a
 
 **The catch:** Strata pins the SHA-256 of *Unsloth's own* files, and deletes any file with their names that doesn't match. Huihui's files have the same names and other contents, so the check must be skipped for this one install (the model card says so too, and suggests editing `setup.py`). Below is the small, reversible version: a one-line guard that only does something when you set `STRATA_SKIP_SHA256=1`, removed again right after. Strata still checks that every file is complete.
 
-**Step 0, pre-flight** (RAM, disk, and no stock Unsloth pack in the way, it would be reused instead of rebuilt):
+**Step 1, check and download** in one block (RAM, disk, no stock Unsloth pack in the way, then the download). The download is resumable: if it stops, paste the block again; it takes a while. It uses Hugging Face's `hf` tool in its own little environment:
 
 🖥️ **on your PC**
 
 ```shell
 . ~/.llm-dir
+QUANT=UD-IQ4_XS      # EDIT only for the bigger one: UD-Q4_K_XL (see the table above)
+L="${LLM_DIR:?do chapter 0 first}"
+P="$L/Strata-data/packs/unsloth-$(echo "$QUANT" | tr 'A-Z' 'a-z')"
 echo "RAM, GB (48+ needed):  $(free -g | awk '/^Mem:/{print $2}')"
-echo "Free disk in $LLM_DIR, GB (about 105 for IQ4_XS, 125 for Q4_K_XL):  $(df -BG --output=avail "${LLM_DIR:?do chapter 0 first}" | tail -1 | tr -dc 0-9)"
-if ls "$LLM_DIR/Strata-data/packs" 2>/dev/null | grep -qi unsloth; then
-  echo "STOP: a stock Unsloth pack exists. Move it away first:"
-  echo "  mv $LLM_DIR/Strata-data/packs/unsloth-ud-iq4_xs $LLM_DIR/Strata-data/packs/unsloth-ud-iq4_xs.stock"
+echo "Free disk in $L, GB (about 105 for IQ4_XS, 125 for Q4_K_XL):  $(df -BG --output=avail "$L" | tail -1 | tr -dc 0-9)"
+if [ -d "$P" ]; then
+  echo "STOP: Strata already has a pack $P"
+  echo "If it is the stock Unsloth one, it would be reused instead of Huihui's: move it away, then paste this block again:"
+  echo "  mv $P $P.stock"
+  echo "If it is from an earlier Huihui install, you can go straight to step 2."
 else
-  echo "No stock Unsloth pack in the way: good."
+  sudo apt install -y python3-venv &&
+  python3 -m venv ~/hf-venv && ~/hf-venv/bin/pip install -q -U huggingface_hub &&
+  ~/hf-venv/bin/hf download huihui-ai/Huihui-Qwen3.8-Flash-Next-abliterated-v2-GGUF \
+    --include "unsloth-$QUANT/*" --local-dir "$L/huihui-qfn" &&
+  ls -l "$L/huihui-qfn/unsloth-$QUANT"
 fi
 ```
 
-Also bring Strata up to date first (`cd "$LLM_DIR/Strata" && ./update.sh`: it pulls the newest Strata and refreshes the engine, your model files are not touched). IQ4_XS needs Strata 0.1.39 or newer.
+(IQ4_XS needs Strata 0.1.39 or newer, which any Strata installed with this guide is: there is no need to update it for this.) You should see 3 `.gguf` files for IQ4_XS (about 11 MB, 49.8 GB and 43.8 GB) or 4 for Q4_K_XL (11 MB, 49.9, 49.4 and 12.1 GB). If you want to be thorough, `sha256sum "$LLM_DIR"/huihui-qfn/unsloth-$QUANT/*.gguf` (a few minutes) and compare with the SHA256 Hugging Face shows on each file's page.
 
-**Step 1, download** (resumable: if it stops, run it again; it takes a while). It uses Hugging Face's `hf` tool in its own little environment:
-
-🖥️ **on your PC**
-
-```shell
-. ~/.llm-dir
-QUANT=UD-IQ4_XS      # same as above
-sudo apt install -y python3-venv
-python3 -m venv ~/hf-venv && ~/hf-venv/bin/pip install -q -U huggingface_hub &&
-~/hf-venv/bin/hf download huihui-ai/Huihui-Qwen3.8-Flash-Next-abliterated-v2-GGUF \
-  --include "unsloth-$QUANT/*" --local-dir "${LLM_DIR:?do chapter 0 first}/huihui-qfn" &&
-ls -l "$LLM_DIR/huihui-qfn/unsloth-$QUANT"
-```
-
-You should see 3 `.gguf` files for IQ4_XS (about 11 MB, 49.8 GB and 43.8 GB) or 4 for Q4_K_XL (11 MB, 49.9, 49.4 and 12.1 GB). If you want to be thorough, `sha256sum "$LLM_DIR"/huihui-qfn/unsloth-$QUANT/*.gguf` (a few minutes) and compare with the SHA256 Hugging Face shows on each file's page.
-
-**Step 2, one-time guard in `setup.py`** (keeps a copy of the original; safe to paste twice):
+**Step 2, install and start** in one block: it adds the one-time guard to `setup.py`, lets Strata's setup do the rest using your files in place (engine, pack, draft layer, config, start script), puts `setup.py` back, protects the files, and starts the model. Stop the other Strata model first (only one runs on port 11434). Enter gives the recommended answers (context, images):
 
 🖥️ **on your PC**
 
 ```shell
 . ~/.llm-dir
-cd "${LLM_DIR:?do chapter 0 first}/Strata" && { [ -f setup.py.orig ] || cp setup.py setup.py.orig; } &&
-python3 - <<'EOF'
-import pathlib
-p = pathlib.Path("setup.py")
+. ~/.strata-key      # your STRATA_KEY
+QUANT=UD-IQ4_XS      # same as in step 1
+L="${LLM_DIR:?do chapter 0 first}"
+cd "$L/Strata" &&
+python3 - <<'EOF' &&
+import pathlib, shutil, sys
+p, o = pathlib.Path("setup.py"), pathlib.Path("setup.py.orig")
 t = p.read_text(encoding="utf-8")
 sig = "def verify_sha256(s: Path, size: int, sha: str) -> None:\n"
 guard = ('    if os.environ.get("STRATA_SKIP_SHA256") == "1":\n'
          '        return   # one-off: Huihui files are not Unsloth\'s\n')
 if "STRATA_SKIP_SHA256" in t:
-    print("already patched")
-elif sig not in t:
+    if o.exists():
+        print("setup.py already patched (an earlier run was interrupted): going on")
+        sys.exit(0)
+    print("STOP: setup.py is patched but setup.py.orig is gone: run  git checkout setup.py  here, then paste again")
+    sys.exit(1)
+if sig not in t:
     print("STOP: setup.py has changed, do not patch blindly (ask for help)")
-else:
-    p.write_text(t.replace(sig, sig + guard, 1), encoding="utf-8")
-    print("patched")
+    sys.exit(1)
+shutil.copy2(p, o)
+p.write_text(t.replace(sig, sig + guard, 1), encoding="utf-8")
+print("setup.py patched (the original is kept as setup.py.orig)")
 EOF
+( trap 'mv -f setup.py.orig setup.py && echo "setup.py restored"' EXIT
+  STRATA_SKIP_SHA256=1 ./setup.sh --setup --family unsloth --model "$QUANT" \
+    --gguf-dir "$L/huihui-qfn/unsloth-$QUANT" --data-dir "$L/Strata-data" \
+    --host 0.0.0.0 --port 11434 --api-key "$STRATA_KEY" --no-browser --no-start ) &&
+chmod a-w "$L/huihui-qfn/unsloth-$QUANT" &&
+"./run-unsloth-$(echo "$QUANT" | tr 'A-Z' 'a-z').sh"
 ```
 
-**Step 3, let Strata's setup do the rest** (engine, pack, draft layer, config, start script), using your files in place, then put `setup.py` back:
+Press Ctrl-C by mistake during the install? The `trap` puts `setup.py` back anyway. The setup writes `strata-unsloth-ud-iq4_xs.json` and `run-unsloth-ud-iq4_xs.sh` next to `setup.py` (`ud-q4_k_xl` for the other size). The `chmod a-w` is for your 94 GB: without write access to that folder, a future Strata update that re-checks the hashes can't delete them, it just complains.
 
-🖥️ **on your PC**
-
-```shell
-. ~/.llm-dir
-QUANT=UD-IQ4_XS      # same as above
-. ~/.strata-key      # your STRATA_KEY
-cd "${LLM_DIR:?do chapter 0 first}/Strata" &&
-STRATA_SKIP_SHA256=1 ./setup.sh --setup --family unsloth --model "$QUANT" \
-  --gguf-dir "$LLM_DIR/huihui-qfn/unsloth-$QUANT" --data-dir "$LLM_DIR/Strata-data" \
-  --host 0.0.0.0 --port 11434 --api-key "$STRATA_KEY" --no-start
-mv -f setup.py.orig setup.py && echo "setup.py restored"
-```
-
-Enter gives the recommended answers (context, images). Press Ctrl-C by mistake? Run the `mv -f` line anyway. It writes `strata-unsloth-ud-iq4_xs.json` and `run-unsloth-ud-iq4_xs.sh` next to `setup.py` (`ud-q4_k_xl` for the other size).
-
-**Step 4, protect the files, then start it** (stop the other Strata model first). Without write access to the folder, a future Strata update that re-checks the hashes can't delete your 94 GB, it just complains:
-
-🖥️ **on your PC**
-
-```shell
-. ~/.llm-dir
-QUANT=UD-IQ4_XS      # same as above
-chmod a-w "${LLM_DIR:?do chapter 0 first}/huihui-qfn/unsloth-$QUANT"
-cd "$LLM_DIR/Strata" && "./run-unsloth-$(echo "$QUANT" | tr 'A-Z' 'a-z').sh"
-```
-
-The VM sees no change: same address, same key. Check with the `curl` above (the model's name is now `qwen3.8-flash-next-unsloth-ud-iq4_xs`, picoclaw doesn't care). To use the stock model again, stop this one and start another from `./setup.sh`.
+The VM sees no change: same address, same key. Check with the "Check that it answers" block above (the model's name is now `qwen3.8-flash-next-unsloth-ud-iq4_xs`, picoclaw doesn't care). With two models installed, `./setup.sh` asks which one to start: to go back to the stock model, stop this one and pick the other.
 
 To remove it:
 
@@ -565,47 +575,42 @@ With Ollama, in the rest of this doc: the key can be any non-empty string like `
 
 Follow that nice tutorial from [smolBSD](https://github.com/NetBSDfr/smolBSD/tree/main/service/clawd) (or just this).
 
-It is a VM so you need to have your computer agree to having a VM running on it:
+The VM is just giving tools to the chatbot, not running the chatbot itself (Strata does that, on your GPU). It doesn't need a lot of resources (here, 2 CPU cores, 1024 MB of RAM), but it does need to be isolated from your life ! So we share one dedicated folder, `~/smolBSD/share`, and nothing else.
+
+It is a VM, so your computer must agree to run one (KVM). This one block checks that first (if it stops there, the first fold below explains the fix), then installs the tools, fetches the VM image and boots it. The first time it takes a few minutes (the `pull` also fetches the little `oras` tool into `smolBSD/bin/` by itself):
 
 🖥️ **on your PC**
 
 ```shell
-grep -Ec '(vmx|svm)' /proc/cpuinfo   # 0 = nope
-ls /dev/kvm                          # must exist
+if [ ! -w /dev/kvm ]; then
+  echo "STOP: no usable /dev/kvm (virtualization is off, or it isn't yours to use): see the first fold below, then paste this block again"
+else
+  sudo apt install -y curl git bmake qemu-system-x86 uuid-runtime binutils libarchive-tools gdisk socat jq lsof picocom tmux &&
+  cd ~ && { [ -d smolBSD ] || git clone https://github.com/NetBSDfr/smolBSD; } && cd smolBSD &&
+  mkdir -p share &&
+  ./smoler.sh pull clawd-amd64:latest &&
+  ./smoler.sh run clawd-amd64:latest -c 2 -m 1024 -w "$HOME/smolBSD/share"
+fi
 ```
 
-<details markdown="1">
-<summary>0, or no /dev/kvm, or "permission denied"?</summary>
+(Rather build the image yourself than pull it? Replace the `pull` line with `./smoler.sh build -y smolerfiles/Dockerfile.clawd`, a few minutes.)
 
-You might have to reboot into BIOS and enable "Intel VT-x" or "AMD-V" (sometimes called "SVM Mode"). It's usually under CPU settings or Advanced. If the CPU is fine but `/dev/kvm` is missing, `sudo modprobe kvm_intel` (or `kvm_amd`). If `/dev/kvm` is there but you get "permission denied": `sudo usermod -aG kvm $USER`, then log out and back in.
+**This terminal now IS the VM.** Open another one for anything marked "on your PC". You land in a `tmux` as user `clawd`. `exit` in every pane shuts the VM down. Next time, you don't paste this block again: chapter 6 starts everything with one command. These are the only tmux keys you really need (press `Ctrl-b`, let go, then the key):
 
-</details>
+| Keys | What it does |
+| --- | --- |
+| `Ctrl-b c` | new window (a second terminal in the VM, e.g. for `picoclaw gateway`) |
+| `Ctrl-b n` / `Ctrl-b p` | next / previous window (`Ctrl-b 0` ... `9`: window number N) |
+| `Ctrl-b w` | a list of the windows to pick from |
+| `Ctrl-b \|` and `Ctrl-b -` | split the window side by side / top and bottom (in this VM only: tmux's own keys are `%` and `"`) |
+| `Ctrl-b` + an arrow | go to the pane on that side |
+| `Ctrl-b z` | zoom the pane to the whole window, again to go back |
+| `Ctrl-b [` | scroll back: arrows or PageUp, `q` to leave. The mouse wheel usually does not scroll tmux's history. |
+| `Ctrl-b d` | detach: leave and let everything keep running (`tmux attach` brings you back). On your PC only: in the VM, just leave the window open |
+| `Ctrl-b ,` | rename the window |
+| `Ctrl-b x` | close the pane (asks `y`) |
 
-Then
-
-🖥️ **on your PC**
-
-```shell
-sudo apt install -y curl git bmake qemu-system-x86 uuid-runtime binutils libarchive-tools gdisk socat jq lsof picocom
-cd ~ && git clone https://github.com/NetBSDfr/smolBSD && cd smolBSD
-./smoler.sh pull clawd-amd64:latest
-# or build it yourself instead of pulling, it takes a few minutes:
-# ./smoler.sh build -y smolerfiles/Dockerfile.clawd
-```
-
-(The first `pull` fetches the little `oras` tool into `smolBSD/bin/` by itself.)
-
-This part is just giving tools to the chatbot, not running the chatbot itself (Strata does that, on your GPU). It doesn't need a lot of resources (here, 2 CPU cores, 1024 MB of RAM), but it does need to be isolated from your life ! So we share one dedicated folder, and nothing else:
-
-🖥️ **on your PC**
-
-```shell
-cd ~/smolBSD
-mkdir -p share
-./smoler.sh run clawd-amd64:latest -c 2 -m 1024 -w "$HOME/smolBSD/share"
-```
-
-**This terminal now IS the VM.** Open another one for anything marked "on your PC". You land in a `tmux` as user `clawd` (`Ctrl-b |` and `Ctrl-b -` to split, `Ctrl-b c` for a new window, `Ctrl-b n` to switch). `exit` in every pane shuts the VM down.
+On your PC, the same table works for the `agent` session of chapter 6, with `Ctrl-a` instead of `Ctrl-b` (so the two never fight when one tmux runs inside the other). Outside tmux: `tmux ls` lists the sessions, `tmux attach -t agent` goes back to one.
 
 Inside the VM the shared folder is mounted at:
 
@@ -614,6 +619,13 @@ Inside the VM the shared folder is mounted at:
 ```
 
 The agent can read and write everything in there. A dedicated folder, never your home!
+
+<details markdown="1">
+<summary>STOP on the KVM check? No /dev/kvm, or "permission denied"?</summary>
+
+Check what your PC says: `grep -Ec '(vmx|svm)' /proc/cpuinfo` (0 = the CPU feature is off or missing) and `ls -l /dev/kvm`. You might have to reboot into BIOS and enable "Intel VT-x" or "AMD-V" (sometimes called "SVM Mode"). It's usually under CPU settings or Advanced. If the CPU is fine but `/dev/kvm` is missing, `sudo modprobe kvm_intel` (or `kvm_amd`). If `/dev/kvm` is there but you get "permission denied": `sudo usermod -aG kvm $USER`, then log out and back in.
+
+</details>
 
 <details markdown="1">
 <summary>Example of iMil's conf: ports and SSH (handy, optional)</summary>
@@ -675,52 +687,75 @@ picoclaw onboard
 
 It writes a default config in `~/.picoclaw/config.json` and a workspace in `~/.picoclaw/workspace` (with the built-in skills). If it asks questions, take the defaults, we edit the config right after: you tell picoclaw about Strata there.
 
-Strata listens on http://0.0.0.0:11434 _somewhere_ but not in the smolBSD VM. Get your PC's address from the "Find your PC's address" part above. Then, in the VM, **edit the first two lines** and paste (it keeps a dated backup of your config, and changes only these bits):
+Strata listens on http://0.0.0.0:11434 _somewhere_ but not in the smolBSD VM. In the VM, **edit the first three lines** and paste. The first two are the lines the "Check that it answers" block of chapter 1 printed for you. This one block sets up everything the agent needs to start: the model, web search, a leash (see the fold below), and a few house rules for the small model. It keeps a dated backup of your config, changes only these bits, can be pasted again any time, and ends by asking Strata for its model from inside the VM, which proves the whole path works:
 
 🦞 **in the VM**
 
 ```shell
-PC_IP=192.168.x.x                 # EDIT: your PC's address, like 192.168.1.53
-STRATA_KEY=PUT-YOUR-KEY-HERE      # EDIT: the key (cat ~/.strata-key on your PC). With Ollama: -
+PC_IP=192.168.x.x                 # EDIT: your PC's address, like 192.168.1.53 (printed by chapter 1)
+STRATA_KEY=PUT-YOUR-KEY-HERE      # EDIT: Strata's key (printed there too). With Ollama: -
+MODE=open                         # EDIT or keep: "open" = picoclaw's safety guards off, the VM is the cage (advised); "strict" = its defaults
 
-case "$PC_IP$STRATA_KEY" in
-  *x.x*|*PUT-*) echo "STOP: edit PC_IP and STRATA_KEY first" ;;
-  *)
+case "$MODE" in
+  open)   guard=false; iter=40 ;;
+  strict) guard=true;  iter=50 ;;
+  *)      guard= ;;
+esac
+RULES='## House rules for the shell
+
+- This machine is NetBSD, not Linux: no /proc/meminfo, free, lscpu or apt. Use uname -a, sysctl hw.model hw.ncpu hw.physmem64, vmstat, df -h, ps aux.
+- You are not root: su and sudo do not work, and pkgin needs root. If you need a system package, tell me.
+- exec always needs action "run" together with the command.
+- If a command or tool fails twice the same way, do not try a third variation: stop and tell me what you wanted to do. After 3 failed tool calls in a row, stop and ask me.'
+
+if case "$PC_IP$STRATA_KEY" in *x.x*|*PUT-*) true ;; *) false ;; esac; then
+  echo "STOP: edit PC_IP and STRATA_KEY first"
+elif [ -z "$guard" ]; then
+  echo "STOP: MODE must be open or strict"
+else
   cd ~/.picoclaw &&
   cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
-  jq --arg url "http://$PC_IP:11434/v1" --arg key "$STRATA_KEY" '
+  jq --arg url "http://$PC_IP:11434/v1" --arg key "$STRATA_KEY" --argjson g "$guard" --argjson n "$iter" '
       .agents.defaults.model_name = "strata"
     | .agents.defaults.tool_feedback.enabled = true
+    | .agents.defaults.restrict_to_workspace = $g
+    | .tools.exec.enable_deny_patterns = $g
+    | .agents.defaults.max_tool_iterations = $n
     | .model_list = [{model_name: "strata", model: "vllm/qwen3.8-flash-next", api_base: $url, api_keys: [$key]}]
     | .tools.web.duckduckgo.enabled = true
+    | .tools.install_skill.enabled = false
+    | .tools.cron.allow_command = false
   ' config.json > config.json.new &&
   mv config.json.new config.json &&
   chmod 600 config.json &&
-  echo "OK: config.json updated"
-  cd ~ ;;
-esac
-```
-
-Check from the VM that Strata answers (you should see the model's name):
-
-🦞 **in the VM** (same terminal, `PC_IP` and `STRATA_KEY` are still set)
-
-```shell
-curl -s "http://$PC_IP:11434/v1/models" -H "Authorization: Bearer $STRATA_KEY" | jq .
+  f=workspace/USER.md &&
+  mkdir -p workspace && touch "$f" &&
+  { awk '/^## House rules for the shell/{skip=1; next} /^## /{skip=0} !skip' "$f"
+    printf '\n%s\n' "$RULES"; } | cat -s > "$f.new" &&
+  mv "$f.new" "$f" &&
+  echo "OK: agent configured (MODE=$MODE), house rules written"
+  cd ~
+  ids=$(curl -s --max-time 10 "http://$PC_IP:11434/v1/models" -H "Authorization: Bearer $STRATA_KEY" | jq -r '.data[].id' 2>/dev/null)
+  if [ -n "$ids" ]; then echo "Strata answers from the VM: $ids"
+  else echo "NO ANSWER from Strata at $PC_IP:11434: wrong address or key? Strata not started? see the troubleshooting table at the end"; fi
+fi
 ```
 
 <details markdown="1">
-<summary>What did that block change?</summary>
+<summary>What did that block change? (and why are the safety guards off?)</summary>
 
 - `vllm/` = "local OpenAI-compatible server". The model's name after it is not very important, Strata answers to anything.
 - `tool_feedback`: the agent tells you in the chat before each tool it uses. That's how you *see what it does* before giving it more power.
 - Web search: DuckDuckGo needs no API key (no Brave key needed, unlike openclaw), but it can be **off by default**, hence the explicit `true`. Brave works too if you have a key: `.tools.web.brave = {"enabled": true, "api_key": "..."}`.
+- The leash for week one: you pick the skills, not the agent, so `install_skill` (it installing skills by itself) and `cron.allow_command` (it scheduling shell commands for itself) are off. Chapter 4 says how to turn them back on when you trust it more.
+- **The safety guards (`MODE`).** picoclaw puts two guards on its shell and file tools: one keeps them inside the workspace (no `/tmp`, `/proc` or `/mnt`, no `..`, no other `cwd`), the other refuses a list of shell constructs (`$(...)`, `${...}`, backticks, `kill`, `rm -r`, `chmod 755`...) and only says "dangerous pattern detected". A small model can't see these rules, so it retries variations until it runs out of tool calls, and even a simple task (a holiday date, a system check, "test your skills") fails with "blocked by safety guard", "access denied" or "path escapes workspace". They are a text check, not a sandbox (they don't understand `~/` or `cd /`), so they never were the cage: **the VM is the cage**. So `open` switches them off and raises the cap to 40 tool calls per request (a real task needs 10 to 25). It means the agent can read and write anywhere in the VM, `/mnt` (your shared folder) and its own `~/.picoclaw/config.json` (your keys) included, and run any command a normal user can. It is still not root. So keep in the shared folder only what the VM may see, and take a save before big experiments (the "Save and restore" fold, after "Talk to it"). Want picoclaw's own guards back? Paste the block again with `MODE=strict`.
+- The house rules go into `USER.md` in the workspace, which is added to every prompt: the model otherwise guesses it is on Linux, as root. Pasting the block again replaces that section, it never piles up.
 - If you gave Strata less context than picoclaw assumes (`agents.defaults.context_window`, 131072 in the example config), lower it to match, e.g. `jq '.agents.defaults.context_window = 65536' config.json > config.json.new && mv config.json.new config.json`.
 - Something went wrong? `ls ~/.picoclaw/config.json.*.bak`, and `cp` the last one back over `config.json`.
 
 </details>
 
-Let's skip the rest for now, you can put other stuff here (Telegram, MCP, skills...), see below, but let's start small.
+Let's skip the rest for now, you can put other stuff here (Telegram, MCP, skills, a browser...), see below, but let's start small.
 
 ### Talk to it
 
@@ -734,60 +769,7 @@ picoclaw agent --debug -m "list the files in your workspace"   # same, with the 
 
 Or the web UI: `picoclaw-launcher -public` in the VM, then http://127.0.0.1:18800 in your PC's browser.
 
-Heads up: picoclaw runs its tools without asking you. Out of the box it's kept in its workspace (`restrict_to_workspace`) and a deny list blocks the obvious nonsense (`rm -rf`, `sudo`, `curl | sh`...), but that's a seatbelt, not a cage, and small models keep tripping on it: see the fold below. The cage is the VM. Watch what it does before giving it more.
-
-<details markdown="1">
-<summary>The agent keeps getting refused ("blocked by safety guard", "access denied", "path escapes workspace")?</summary>
-
-picoclaw puts two guards on its shell and file tools. One keeps them inside the workspace (no `/tmp`, `/proc` or `/mnt`, no `..`, no other `cwd`). The other refuses a list of shell constructs (`$(...)`, `${...}`, backticks, `kill`, `rm -r`, `chmod 755`...) and only says "dangerous pattern detected". A small model can't see these rules, so it retries variations until it runs out of tool calls, and even a simple task (a holiday date, a system check, "test your skills") fails. They are also a text check, not a sandbox (they don't understand `~/` or `cd /`), so they never were the cage: **the VM is the cage**. So the honest fix is to switch them off:
-
-🦞 **in the VM**
-
-```shell
-MODE=open   # EDIT: "open" = guards off (the VM is the cage), "strict" = picoclaw's defaults
-case "$MODE" in
-  open)   guard=false; iter=40 ;;
-  strict) guard=true;  iter=50 ;;
-  *) echo "MODE must be open or strict"; guard=""; iter="" ;;
-esac
-cd ~/.picoclaw && [ -n "$guard" ] &&
-cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
-jq --argjson g "$guard" --argjson n "$iter" \
-   '.agents.defaults.restrict_to_workspace = $g
-    | .tools.exec.enable_deny_patterns = $g
-    | .agents.defaults.max_tool_iterations = $n' config.json > config.json.new &&
-mv config.json.new config.json &&
-chmod 600 config.json &&
-echo "OK: $MODE" ; cd ~
-```
-
-What "open" means: the agent can read and write anywhere in the VM, `/mnt` (your shared folder) and its own `~/.picoclaw/config.json` (your keys) included, and run any command a normal user can. It is still not root. So keep in the shared folder only what the VM may see, and take a save before big experiments (next fold). The cap goes to 40 tool calls per request: a real task needs 10 to 25.
-
-Then a few house rules, because a small model also guesses that it's on Linux and root. `USER.md` in the workspace is added to every prompt. Paste this again later and it replaces its own section:
-
-🦞 **in the VM**
-
-```shell
-f=~/.picoclaw/workspace/USER.md
-mkdir -p ~/.picoclaw/workspace && touch "$f" &&
-{ awk '/^## House rules for the shell/{skip=1; next} /^## /{skip=0} !skip' "$f"
-  cat <<'EOF'
-
-## House rules for the shell
-
-- This machine is NetBSD, not Linux: no /proc/meminfo, free, lscpu or apt. Use uname -a, sysctl hw.model hw.ncpu hw.physmem64, vmstat, df -h, ps aux.
-- You are not root: su and sudo do not work, and pkgin needs root. If you need a system package, tell me.
-- exec always needs action "run" together with the command.
-- If a command or tool fails twice the same way, do not try a third variation: stop and tell me what you wanted to do. After 3 failed tool calls in a row, stop and ask me.
-EOF
-} | cat -s > "$f.new" &&
-mv "$f.new" "$f" &&
-echo "OK"
-```
-
-Restart what you were running (Ctrl-C, start `picoclaw agent` or `picoclaw gateway` again). A `missing required property "action"` warning is harmless: the model forgot `action: "run"` and retries. To watch every command it runs, start with `picoclaw agent --debug` (or `picoclaw gateway --debug`) and look for the `Tool call: exec({...})` lines.
-
-</details>
+Heads up: picoclaw runs its tools without asking you, and with `MODE=open` nothing but the VM stands in its way. The cage is the VM. Watch what it does before giving it more: `picoclaw agent --debug` (or `picoclaw gateway --debug`) prints every command it runs on the `Tool call: exec({...})` lines. A `missing required property "action"` warning is harmless: the model forgot `action: "run"` and retries.
 
 <details markdown="1">
 <summary>Save and restore the agent (so a bug or an update costs ten seconds)</summary>
@@ -909,7 +891,7 @@ picoclaw skills install-builtin             # (re)install them in your workspace
 # picoclaw skills remove SKILL_NAME
 ```
 
-Built-ins: `weather` (no API key), `summarize` (URLs and files), `github` (the `gh` CLI), `tmux`, `agent-browser` (browser automation), `hardware` (Sipeed boards, useless here), `picoclaw-agent` (it knows picoclaw's own config, ask it for help!) and `skill-creator`, a skill to make skills: *"use the skill-creator skill to make me a skill that ..."*.
+Built-ins: `weather` (no API key), `summarize` (URLs and files), `github` (the `gh` CLI), `tmux`, `agent-browser` (browser automation: it needs a program that doesn't exist for NetBSD, see "A browser for the agent" below), `hardware` (Sipeed boards, useless here), `picoclaw-agent` (it knows picoclaw's own config, ask it for help!) and `skill-creator`, a skill to make skills: *"use the skill-creator skill to make me a skill that ..."*.
 
 ### Make your own, in 30 seconds
 
@@ -1018,10 +1000,114 @@ Whatever is installed, `/list skills`, `/list mcp` and `/show mcp <server>` (in 
 
 </details>
 
+### A browser for the agent
+
+`web_fetch` reads a plain page. A page built with JavaScript, a button to click, a form or a screenshot need a real browser. There is none in the VM and none can be installed there, so the browser runs on your PC and the agent drives it over the network.
+
+<details markdown="1">
+<summary>Give the agent a real browser (Chrome on your PC, driven from the VM)</summary>
+
+**Why on the PC.** The built-in `agent-browser` skill needs two programs and neither exists for NetBSD: its own command (no NetBSD build; compiling it needs a Rust toolchain of 1.7 GB, on a root disk of 3.9 GB) and Chrome (`pkgin` has it, with about 110 dependencies and 125 MB, but installing needs root, which you don't have). The kernel has no Linux emulation either, so the Linux builds are out. So: Chrome on your Ubuntu PC, driven by [Playwright MCP](https://github.com/microsoft/playwright-mcp) (Microsoft's MCP server for browsers), and the VM only speaks HTTP to it. QEMU shows your PC to the VM as `10.0.2.2`, which is why the server can listen on `127.0.0.1` only: nothing on your network can reach it.
+
+**Step 1, on your PC, once:** Node.js 18+, Google Chrome (skipped if you have it; it is Google's official `.deb`, which also adds Google's apt repository), and a small start script. Pasting it again is harmless:
+
+🖥️ **on your PC**
+
+```shell
+node_ok() { node -e 'process.exit(+process.versions.node.split(".")[0] >= 18 ? 0 : 1)' 2>/dev/null; }
+node_ok || sudo apt install -y nodejs npm
+command -v google-chrome >/dev/null || {
+  curl -fL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb &&
+  sudo apt install -y /tmp/chrome.deb; rm -f /tmp/chrome.deb; }
+
+cat > ~/browser-mcp.sh <<'EOF'
+#!/bin/sh
+# browser-mcp.sh: a headless Chrome that the agent in the VM can drive (Playwright MCP).
+# It listens on this PC only (127.0.0.1:8931); the VM reaches it as 10.0.2.2:8931. Ctrl-C stops it.
+# Its files (screenshots, page snapshots) go to shots/ in the shared folder, which is /mnt/shots in the VM.
+SHARE="${SHARE:-$HOME/smolBSD/share}"
+mkdir -p "$SHARE/shots" && cd "$SHARE" || exit 1
+exec npx -y @playwright/mcp@0.0.83 \
+  --browser chrome --headless --isolated \
+  --host 127.0.0.1 --port 8931 --allowed-hosts 10.0.2.2:8931 \
+  --image-responses omit --output-dir shots
+EOF
+
+if node_ok && command -v google-chrome >/dev/null; then
+  echo "OK: Node $(node --version), $(google-chrome --version). Next: sh ~/browser-mcp.sh"
+else
+  echo "STOP: Node.js 18+ and Google Chrome are both needed (see above; Node: https://nodejs.org)"
+fi
+```
+
+**Step 2, on your PC:** start it, and leave that terminal open (chapter 6 starts it for you from then on). The first start downloads Playwright MCP, then it says `Listening on ...:8931`:
+
+🖥️ **on your PC**
+
+```shell
+sh ~/browser-mcp.sh
+```
+
+**Step 3, in the VM, once:** plug it in, give the agent a short manual for it, and remove the `agent-browser` skill, which would only send it chasing a program that isn't there. The server is registered `--no-deferred`: its 25 tools are always in the prompt (about 5k tokens), so the small model can't forget they exist.
+
+🦞 **in the VM**
+
+```shell
+picoclaw mcp add -f --no-deferred --transport http browser http://10.0.2.2:8931/mcp
+picoclaw skills remove agent-browser 2>/dev/null
+
+d=~/.picoclaw/workspace/skills/browser
+mkdir -p "$d" && cat > "$d/SKILL.md" <<'EOF'
+---
+name: browser
+description: Use a real web browser: open a page, read it, click, fill a form, take a screenshot. Use it when web_fetch is not enough (page built with JavaScript, a button to click, a form, a screenshot). This is NOT the agent-browser command, which does not exist on this machine.
+---
+
+# browser
+
+A real Chrome runs on the user's PC. You drive it with the browser_* tools (browser_navigate, browser_snapshot, browser_click, browser_type, browser_fill_form, browser_take_screenshot, browser_tabs...).
+
+1. browser_navigate with the URL.
+2. browser_snapshot: the page as text, with a ref like e12 for each link, button and field. Read it, do not guess refs.
+3. browser_click or browser_type: give the ref from the LAST snapshot (like e12) as the target. Snapshot again after each action: the refs change.
+4. Answer from the snapshot text. If the user asks for a picture, use browser_take_screenshot. You cannot see it: the file is in /mnt/shots, tell the user its name.
+
+Rules:
+- For a plain page of text, web_fetch is cheaper. Use the browser only when it is not enough.
+- Never log in, never type a password, a key or personal data, never buy or submit anything without asking the user first.
+- Stay on the sites the user asked about. Never open addresses of the local network (localhost, 127.0.0.1, 10.x.x.x, 192.168.x.x).
+- If something fails twice, stop and tell the user what you wanted to do.
+EOF
+
+picoclaw mcp test browser
+picoclaw skills list
+```
+
+`mcp test` should list the browser tools (`browser_navigate`, `browser_snapshot`...). Then try it, and look in `~/smolBSD/share/shots` on your PC afterwards:
+
+🦞 **in the VM**
+
+```shell
+picoclaw agent -m "Use the browser skill: open https://example.com, tell me the title of the page, then take a screenshot."
+```
+
+**What to know before you let it loose:**
+
+- The browser is **headless** (no window) and **isolated**: a throwaway profile, no cookies, no logins, forgotten when it closes. Don't log in to anything in it.
+- It has **no password**. Whatever reaches port 8931 of your PC can drive the browser: the VM (that is the point), but also any program on your PC. It only answers to the name `10.0.2.2:8931`, so a web page you visit can't talk to it.
+- The browser lives on **your PC's network**: it can open your router's admin page or `http://127.0.0.1:11434` (Strata), which the VM itself could not. The skill tells the agent not to; that is a request, not a wall.
+- Opening `file://` is blocked, and file uploads can only read the shared folder (that is where the script starts it from).
+- The model never gets the pictures (`--image-responses omit`), only the file name; it works from the text snapshot of the page. Snapshots and console logs pile up in `shots/` too: empty it now and then.
+- After an hour idle the browser closes itself; the next call opens it again.
+
+**What did not work, so you don't redo it:** the `agent-browser` command built in the VM (the disk fills up before the build ends); the Linux builds of it (no `compat_linux` in the VM's kernel); Chrome from `pkgin` (needs root). The other route, `agent-browser` on the PC driven from the VM by SSH, or Chrome's debugging port (9222) through an SSH tunnel, does work, but it hands the VM a shell on your PC, which is exactly what the VM is there to avoid, and that debugging port has no password either. If you still go that way, use a dedicated user on the PC and a restricted key (`restrict` in its `authorized_keys`), never your own account.
+
+</details>
+
 ### The built-in tools, and the leash
 
 <details markdown="1">
-<summary>Which tools exist, how to tighten each, and what I'd switch off in week one</summary>
+<summary>Which tools exist, and how to tighten (or loosen) each</summary>
 
 | Tool | What it does | How to tighten it (in `config.json`) |
 | --- | --- | --- |
@@ -1035,20 +1121,20 @@ Whatever is installed, `/list skills`, `/list mcp` and `/show mcp <server>` (in 
 
 Also on by default: tool output is scrubbed of anything that looks like your keys and tokens before the model sees it (`tools.filter_sensitive_data`). Full reference: [tools configuration](https://github.com/sipeed/picoclaw/blob/main/docs/reference/tools_configuration.md).
 
-My advice for week one: you pick the skills, not the agent. Switch off its power to install some, and to schedule shell commands:
+Chapter 3's block already followed my advice for week one: you pick the skills, not the agent, so `install_skill` and `cron.allow_command` are off. Turn them back on when you trust it more (pasting the chapter 3 block again turns them off again):
 
 🦞 **in the VM**
 
 ```shell
 cd ~/.picoclaw &&
 cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
-jq '.tools.install_skill.enabled = false | .tools.cron.allow_command = false' config.json > config.json.new &&
+jq '.tools.install_skill.enabled = true | .tools.cron.allow_command = true' config.json > config.json.new &&
 mv config.json.new config.json &&
 chmod 600 config.json &&
 echo "OK" ; cd ~
 ```
 
-Turn them back on when you trust it more (`true`). With `tool_feedback` on, you can see every tool call in the chat before you do.
+With `tool_feedback` on, you can see every tool call in the chat before you do.
 
 </details>
 
@@ -1137,6 +1223,91 @@ Other chat apps (Discord, Slack, Matrix...) are configured the same way, in `cha
 
 ---
 
+## 6. Daily life
+
+Everything is installed. A normal day is: one command to start, talk to it, look at what it did, stop. Chapters 1 to 5 were the install; you will not paste those again.
+
+### Start everything with one command
+
+Three things must run on your PC: Strata (the brain), the browser server if you did the browser part of chapter 4, and the VM (the hands). This script starts the ones that are not running yet, each in its own window of a `tmux` session called `agent`, and drops you in the VM's window. Create it once:
+
+🖥️ **on your PC**
+
+```shell
+cat > ~/agent-up.sh <<'EOF'
+#!/bin/sh
+# agent-up.sh: bring the whole local agent up with one command, in a tmux session called "agent".
+#   sh ~/agent-up.sh          start what is not running yet, then go to the VM's window
+#   sh ~/agent-up.sh stop     stop Strata and the browser (the VM: type exit in each of its panes)
+# Windows: pc (a free shell), strata (the brain), vm (the agent), browser (if set up). Ctrl-a w lists them.
+# This tmux answers to Ctrl-a, so it never fights with the VM's own tmux (Ctrl-b).
+
+S=agent
+SHARE="${SHARE:-$HOME/smolBSD/share}"
+[ -r ~/.llm-dir ] && . ~/.llm-dir
+[ -f "${LLM_DIR:-/nonexistent}/Strata/setup.sh" ] || { echo "ERROR: Strata not found (chapters 0 and 1 first)"; exit 1; }
+[ -f ~/smolBSD/smoler.sh ] || { echo "ERROR: ~/smolBSD not found (chapter 2 first)"; exit 1; }
+command -v tmux >/dev/null || { echo "ERROR: sudo apt install tmux"; exit 1; }
+
+if [ "$1" = stop ]; then
+  tmux kill-window -t "$S:strata" 2>/dev/null
+  tmux kill-window -t "$S:browser" 2>/dev/null
+  echo "Strata and the browser are stopped. The VM: go to its window (Ctrl-a w) and type exit in each pane."
+  exit 0
+fi
+
+running() { ss -tln 2>/dev/null | grep -q ":$1 "; }                       # is something listening on this port?
+there() { tmux list-windows -t "$S" -F '#W' 2>/dev/null | grep -qx "$1"; }   # is there a window with this name?
+
+start() {   # start NAME PORT COMMAND
+  if running "$2" || there "$1"; then echo "$1: already running"; return; fi
+  tmux new-window -d -t "$S:" -n "$1" "$3; echo; echo '--- $1 has stopped. Enter closes this window ---'; read x"
+  echo "$1: started"
+}
+
+tmux has-session -t "$S" 2>/dev/null || {
+  tmux new-session -d -s "$S" -n pc
+  tmux set-option -t "$S" prefix C-a
+  tmux bind-key C-a send-prefix
+}
+start strata 11434 "cd '$LLM_DIR/Strata' && ./setup.sh --no-browser"
+start vm 2289 "cd '$HOME/smolBSD' && ./smoler.sh run clawd-amd64:latest -c 2 -m 1024 -w '$SHARE'"
+if [ -f ~/browser-mcp.sh ]; then start browser 8931 "sh '$HOME/browser-mcp.sh'"; fi
+
+tmux select-window -t "$S:vm" 2>/dev/null
+if [ -n "$TMUX" ]; then tmux switch-client -t "$S"; else exec tmux attach -t "$S"; fi
+EOF
+sh ~/agent-up.sh
+```
+
+From now on it is only `sh ~/agent-up.sh`. Strata needs a minute or two to load the model; its window (`Ctrl-a w` lists the windows) says when it is ready. Two Strata models installed (chapter 1, Huihui)? That window asks which one to start. Inside the VM, type `picoclaw agent` (or `picoclaw gateway` in a second VM window for Telegram), and the keys are the ones of the tmux table in chapter 2, with `Ctrl-a` for the PC and `Ctrl-b` for the VM. `Ctrl-a d` leaves and lets everything run; `tmux attach -t agent` comes back.
+
+### What you do with it
+
+| I want to... | Do |
+| --- | --- |
+| ask one thing | `picoclaw agent -m "..."` |
+| have a conversation | `picoclaw agent` (`exit` leaves) |
+| talk to it from my phone | `picoclaw gateway` in a second VM window, then Telegram (chapter 5) |
+| see what it does | `picoclaw agent --debug`; or just read the tool calls `tool_feedback` prints in the chat |
+| stop it in the middle of a task | `/stop` in the chat, or Ctrl-C |
+| start over (it drifts, it loops, the context is full) | `/clear` in the chat; `/context` shows how full it is |
+| ask a side question without disturbing the task | `/btw <question>` |
+| give it a file, or get one back | the shared folder: `~/smolBSD/share` on your PC is `/mnt` in the VM |
+| see what it did while I was away | `ls -lt /mnt ~/.picoclaw/workspace` in the VM, and `~/smolBSD/share/shots` for the browser |
+| try something risky | `sh /mnt/picoclaw-keep.sh save` first (chapter 3); `restore` undoes it |
+| give it a new skill | chapter 4: read the `SKILL.md` first, install it yourself |
+
+A few habits that keep it safe: put in the shared folder only what the VM may see; read what a skill says before you install it; if you doubt the agent, change the two secrets it can reach, the Strata key and the Telegram bot token. A model that is stuck is nearly always a model that was asked for too much at once: split the task.
+
+### When you are done, and when things change
+
+When you game or render, free the GPU: `sh ~/agent-up.sh stop` (Strata and the browser stop; in the VM window, `exit` in each pane shuts the VM down cleanly). Next morning, `sh ~/agent-up.sh` again.
+
+Now and then: Strata needs no update to keep working, so update it only when you want something new in it: `. ~/.llm-dir; cd "$LLM_DIR/Strata" && ./update.sh`, then restart it. That update compiles the engine again (a few minutes). If it ends with `could not compile the updated engine`, nothing is lost, the old engine still runs, but each start retries the compile: the fold after the install block in chapter 1 has the fix. picoclaw updates itself every time the VM boots; for smolBSD, `cd ~/smolBSD && git pull`, and remember that a rebuilt or freshly pulled VM image is a new, empty VM: `save` before, `restore` after. Your router gave your PC another address? Chapter 1's check block prints it, and chapter 3's block takes it.
+
+---
+
 ## When it doesn't work
 
 <details markdown="1">
@@ -1146,31 +1317,36 @@ Other chat apps (Discord, Slack, Matrix...) are configured the same way, in `cha
 | --- | --- | --- |
 | Strata setup: "no NVIDIA GPU found"; `nvidia-smi`: "Driver/library version mismatch" | the loaded kernel module and the NVIDIA libraries are different versions (often after an `apt upgrade`) | reboot; if it persists, the "nvidia-smi fails" fold in chapter 1 |
 | `ss` shows `127.0.0.1:11434` | Strata (or Ollama) listens on localhost only | host `0.0.0.0` in `strata-<model>.json` (or the Ollama override), restart |
-| In the VM, `curl` to Strata hangs or is refused | wrong `PC_IP`, Strata on `127.0.0.1`, or your PC's address changed | redo "Find your PC's address", test with `curl` on the PC using that address, fix `api_base` |
+| In the VM, `curl` to Strata hangs or is refused | wrong `PC_IP`, Strata on `127.0.0.1`, or your PC's address changed | redo the "Check that it answers" block of chapter 1 (it prints the address), test with `curl` on the PC using that address, redo the config block of chapter 3 |
 | `401` / `403` / "unauthorized" | the key in `api_keys` isn't Strata's | `cat ~/.strata-key` on the PC, redo the config block |
-| Huihui: setup stops on a SHA-256 or "wrong file" | the guard of step 2 is missing, or `STRATA_SKIP_SHA256=1` wasn't set on the setup line | redo steps 2 and 3 of the Huihui part; your files are safe in `$LLM_DIR/huihui-qfn` |
-| Huihui answers like the stock model | a stock Unsloth pack was reused | move `$LLM_DIR/Strata-data/packs/unsloth-ud-iq4_xs` away, run step 3 again |
-| `Could not access KVM kernel module` | no virtualization | see the KVM part of chapter 2 (BIOS, `modprobe`, `kvm` group) |
+| `./setup.sh` or `./update.sh` stops on `calling a __device__ function ... __half_as_ushort`, or says `could not compile the updated engine` | Strata 0.1.45 and newer, compiled with Ubuntu's CUDA 12.0: one debug line that this toolkit refuses | the fold right after the install block in chapter 1 (a one-line fix) |
+| Huihui: setup stops on a SHA-256 or "wrong file" | the guard in `setup.py` is missing, or `STRATA_SKIP_SHA256=1` wasn't set on the setup line | paste step 2 of the Huihui part again; your files are safe in `$LLM_DIR/huihui-qfn` |
+| Huihui answers like the stock model | a stock Unsloth pack was reused | move `$LLM_DIR/Strata-data/packs/unsloth-ud-iq4_xs` away (`mv` it to `...iq4_xs.stock`), paste step 2 again |
+| "STOP: no usable /dev/kvm", or `Could not access KVM kernel module` | no virtualization, or no permission | the KVM fold in chapter 2 (BIOS, `modprobe`, `kvm` group) |
 | `./smoler.sh run` can't find the image | the pull didn't finish | `./smoler.sh images`; if the list is empty, `pull` again (or `build`) |
 | `Could not set up host forwarding rule` | port 2289, 18789 or 18800 already used (another VM still running?) | `ss -tlnp \| grep -E '18789\|18800\|2289'` |
 | Agent says it has no model / wrong model | `agents.defaults.model_name` isn't a `model_list[].model_name` | both are `strata` in the block above; `jq '.agents.defaults, .model_list' ~/.picoclaw/config.json` |
-| Agent keeps getting "blocked by safety guard", "access denied", "path escapes workspace" or "dangerous pattern" and loops | picoclaw's workspace guard and shell deny list refuse what a small model tries (`/tmp`, `/proc`, `$(...)`, `kill`...); it retries until the call cap | the fold under "Talk to it" in chapter 3 (switch the guards off, the VM is the cage) |
+| Agent keeps getting "blocked by safety guard", "access denied", "path escapes workspace" or "dangerous pattern" and loops | picoclaw's workspace guard and shell deny list refuse what a small model tries (`/tmp`, `/proc`, `$(...)`, `kill`...); it retries until the call cap | paste the chapter 3 config block again with `MODE=open` (guards off, the VM is the cage); the fold after it says why |
 | I want my agent back after a rebuild, an update or a bug | its whole state is one folder, `~/.picoclaw`, and the VM is disposable | "Save and restore the agent", right after, in chapter 3 |
 | Answers, but never uses a tool | model not tool-capable (Ollama), or `exec`/`web` switched off | `picoclaw agent --debug -m "list your tools"` |
 | Web search finds nothing | DuckDuckGo disabled, or the VM has no internet | `jq .tools.web ~/.picoclaw/config.json`; `curl -sI https://duckduckgo.com` |
+| `picoclaw mcp test browser` fails, or the agent says it can't browse | the browser server isn't running on the PC, or the VM can't reach it | on the PC: `sh ~/browser-mcp.sh` must be running, and `curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: 10.0.2.2:8931' http://127.0.0.1:8931/mcp` must print `400` (that is the server answering); then in the VM `picoclaw mcp list --status` |
+| The browser server starts, but every call fails with an error saying that "chrome" is not found or not installed | Google Chrome isn't installed (or isn't at `/opt/google/chrome`) | step 1 of the browser fold in chapter 4, then `google-chrome --version` |
+| The agent tries `agent-browser` and fails | the built-in skill is still there, or the `browser` skill is missing | `picoclaw skills list`, then step 3 of the browser fold |
 | Telegram bot is silent | wrong token; `allow_from` isn't your numeric ID; gateway not running | `picoclaw gateway --debug`, read it |
 | Telegram `409 Conflict` | two gateways poll the same bot token (e.g. an old VM) | stop one |
 | Config is broken | typo in a hand edit | `jq . ~/.picoclaw/config.json` finds it; restore a `config.json.*.bak` |
-| Nothing works since the PC rebooted | your router gave the PC a new address | redo "Find your PC's address" + the config block, then reserve the address in the router. Stop-gap: QEMU always shows your PC to the VM as `10.0.2.2` |
+| Nothing works since the PC rebooted | your router gave the PC a new address | redo the "Check that it answers" block of chapter 1 and the config block of chapter 3, then reserve the address in the router. Stop-gap: QEMU always shows your PC to the VM as `10.0.2.2` |
 
 </details>
 
 ## To Be Continued
 
 - Start the gateway on its own when the VM boots.
-- Keep `~/.picoclaw` outside the VM, so a rebuild doesn't wipe it.
+- Keep `~/.picoclaw` outside the VM, so a rebuild doesn't wipe it (for now, the save script does it by hand).
+- Start `agent-up.sh` by itself when you log in to your PC.
 - Give it a local search engine (SearXNG) instead of DuckDuckGo, and a ComfyUI skill for the French girls.
-- Look at what it did overnight (`~/.picoclaw/workspace`), and only then, hand it more tools.
+- Look at what it did overnight (`~/.picoclaw/workspace`, `shots/`), and only then, hand it more tools.
 
 ---
 
@@ -1287,5 +1463,6 @@ picoclaw mcp add --deferred \
 - Inference: [Strata](https://github.com/Niko1221/Strata) ([models](https://github.com/Niko1221/Strata/blob/main/docs/MODELS.md), [Unsloth by hand](https://github.com/Niko1221/Strata/blob/main/docs/UNSLOTH_Q4.md)), [Huihui QFN](https://huggingface.co/huihui-ai/Huihui-Qwen3.8-Flash-Next-abliterated-v2-GGUF), [Ollama](https://ollama.com), [llmfit](https://github.com/AlexsJones/llmfit)
 - The VM: [smolBSD](https://github.com/NetBSDfr/smolBSD), its [smolClaw page](https://github.com/NetBSDfr/smolBSD/tree/main/service/clawd) and [local-model notes](https://github.com/NetBSDfr/smolBSD/blob/main/service/clawd/LOCAL.md)
 - The agent: [sipeed/picoclaw](https://github.com/sipeed/picoclaw), [NetBSD builds](https://github.com/afjcjsbx/picoclaw/releases); docs: [Telegram](https://github.com/sipeed/picoclaw/blob/main/docs/channels/telegram/README.md), [MCP CLI](https://github.com/sipeed/picoclaw/blob/main/docs/reference/mcp-cli.md), [tools](https://github.com/sipeed/picoclaw/blob/main/docs/reference/tools_configuration.md), [debugging / tool feedback](https://github.com/sipeed/picoclaw/blob/main/docs/operations/debug.md), [security configuration](https://github.com/sipeed/picoclaw/blob/main/docs/security/security_configuration.md)
+- A browser: [Playwright MCP](https://github.com/microsoft/playwright-mcp), [Google Chrome](https://www.google.com/chrome/)
 - Skills: [ClawHub](https://clawhub.ai), [REA](https://github.com/morluto/rea) ([site](https://rea.tools), [npm](https://www.npmjs.com/package/rea-agents), [skills.sh](https://skills.sh/morluto/rea/reverse-engineer-anything)), [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases), [JDK](https://adoptium.net), [Node.js](https://nodejs.org/en/download)
 - Telegram: [@BotFather](https://t.me/BotFather), [@userinfobot](https://t.me/userinfobot)
