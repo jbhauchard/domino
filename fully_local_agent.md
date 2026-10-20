@@ -354,7 +354,7 @@ Note: same port as Ollama, but not the same language. Strata speaks OpenAI's API
 
 Start with `UD-IQ4_XS`. The files are in the repository's `unsloth-UD-IQ4_XS/` and `unsloth-UD-Q4_K_XL/` folders. This install replaces nothing: it is one more model in Strata, with its own start script. Only one runs at a time on port 11434.
 
-**The catch:** Strata pins the SHA-256 of *Unsloth's own* files, and deletes any file with their names that doesn't match. Huihui's files have the same names and other contents, so the check must be skipped for this one install (the model card says so too, and suggests editing `setup.py`). Below is the small, reversible version: a one-line guard that only does something when you set `STRATA_SKIP_SHA256=1`, removed again right after. Strata still checks that every file is complete.
+**The catch:** Strata pins the SHA-256 of *Unsloth's own* files, and stops on any file with their names that doesn't match (older versions deleted it). Huihui's files have the same names and other contents, so the check must be skipped for this one install (the model card says so too, and suggests editing `setup.py`). Below is the small, reversible version: a one-line guard that only does something when you set `HUIHUI_SKIP_SHA256=1`, removed again right after. Strata still checks that every file is complete.
 
 **Step 1, check and download** in one block (RAM, disk, no stock Unsloth pack in the way, then the download). The download is resumable: if it stops, paste the block again; it takes a while. It uses Hugging Face's `hf` tool in its own little environment:
 
@@ -394,36 +394,74 @@ QUANT=UD-IQ4_XS      # same as in step 1
 L="${LLM_DIR:?do chapter 0 first}"
 cd "$L/Strata" &&
 python3 - <<'EOF' &&
-import pathlib, shutil, sys
+import pathlib, re, shutil, sys
 p, o = pathlib.Path("setup.py"), pathlib.Path("setup.py.orig")
 t = p.read_text(encoding="utf-8")
-sig = "def verify_sha256(s: Path, size: int, sha: str) -> None:\n"
-guard = ('    if os.environ.get("STRATA_SKIP_SHA256") == "1":\n'
+guard = ('    if os.environ.get("HUIHUI_SKIP_SHA256") == "1":\n'
          '        return   # one-off: Huihui files are not Unsloth\'s\n')
-if "STRATA_SKIP_SHA256" in t:
+if "HUIHUI_SKIP_SHA256" in t:
     if o.exists():
         print("setup.py already patched (an earlier run was interrupted): going on")
         sys.exit(0)
     print("STOP: setup.py is patched but setup.py.orig is gone: run  git checkout setup.py  here, then paste again")
     sys.exit(1)
-if sig not in t:
+m = re.search(r"^def verify_sha256\(.*\) -> None:\n", t, re.M)
+if m is None:
     print("STOP: setup.py has changed, do not patch blindly (ask for help)")
     sys.exit(1)
 shutil.copy2(p, o)
-p.write_text(t.replace(sig, sig + guard, 1), encoding="utf-8")
+p.write_text(t[:m.end()] + guard + t[m.end():], encoding="utf-8")
 print("setup.py patched (the original is kept as setup.py.orig)")
 EOF
 ( trap 'mv -f setup.py.orig setup.py && echo "setup.py restored"' EXIT
-  STRATA_SKIP_SHA256=1 ./setup.sh --setup --family unsloth --model "$QUANT" \
+  HUIHUI_SKIP_SHA256=1 ./setup.sh --setup --family unsloth --model "$QUANT" \
     --gguf-dir "$L/huihui-qfn/unsloth-$QUANT" --data-dir "$L/Strata-data" \
     --host 0.0.0.0 --port 11434 --api-key "$STRATA_KEY" --no-browser --no-start ) &&
 chmod a-w "$L/huihui-qfn/unsloth-$QUANT" &&
+cp "strata-unsloth-$(echo "$QUANT" | tr 'A-Z' 'a-z').json" "$L/huihui-qfn/strata-$QUANT.json.keep" &&
 "./run-unsloth-$(echo "$QUANT" | tr 'A-Z' 'a-z').sh"
 ```
 
-Press Ctrl-C by mistake during the install? The `trap` puts `setup.py` back anyway. The setup writes `strata-unsloth-ud-iq4_xs.json` and `run-unsloth-ud-iq4_xs.sh` next to `setup.py` (`ud-q4_k_xl` for the other size). The `chmod a-w` is for your 94 GB: without write access to that folder, a future Strata update that re-checks the hashes can't delete them, it just complains.
+Press Ctrl-C by mistake during the install? The `trap` puts `setup.py` back anyway. The setup writes `strata-unsloth-ud-iq4_xs.json` and `run-unsloth-ud-iq4_xs.sh` next to `setup.py` (`ud-q4_k_xl` for the other size). The `chmod a-w` is for your 94 GB: without write access to that folder, a future Strata update that re-checks the hashes can't delete them, it just complains. The last `cp` keeps a copy of the config in `huihui-qfn/` (see just below why).
+
+**Careful, this model has the stock model's name.** Strata names it `unsloth-ud-iq4_xs`, like its own "Unsloth" choice, so a plain `./setup.sh --setup` where you pick "Unsloth" **overwrites this config with the stock files** (the weights stay untouched). To change Huihui's settings or redo its diagnostics, paste step 2 again instead: it is that same setup, aimed at your files. Overwritten anyway? The copy that step 2 made (`huihui-qfn/strata-UD-IQ4_XS.json.keep`) is the config as it was: copy it over `Strata/strata-unsloth-ud-iq4_xs.json` (for the other size, `UD-Q4_K_XL` and `ud-q4_k_xl`).
 
 The VM sees no change: same address, same key. Check with the "Check that it answers" block above (the model's name is now `qwen3.8-flash-next-unsloth-ud-iq4_xs`, picoclaw doesn't care). With two models installed, `./setup.sh` asks which one to start: to go back to the stock model, stop this one and pick the other.
+
+**Already overwritten?** (the run script now starts the stock files, and you have no copy of the config.) Two ways back, both safe to paste twice. The first is step 2 again, as said: it writes a new config from your Huihui files. The second only points the existing config back at them and keeps everything else that Strata just wrote into it (the context, the settings found by its diagnostics): it looks for the model files named in the config's `args`, swaps each one for the same-named file in your Huihui folder, and saves the old config as `.bak` first:
+
+🖥️ **on your PC**
+
+```shell
+. ~/.llm-dir
+QUANT=UD-IQ4_XS      # same as in step 1
+python3 - "${LLM_DIR:?do chapter 0 first}" "$QUANT" <<'EOF'
+import json, os, pathlib, shutil, sys
+L, quant = pathlib.Path(sys.argv[1]), sys.argv[2]
+cfg_path = L / "Strata" / f"strata-unsloth-{quant.lower()}.json"
+mine = L / "huihui-qfn" / f"unsloth-{quant}"
+if not cfg_path.is_file() or not mine.is_dir():
+    sys.exit(f"STOP: need {cfg_path} and the folder {mine}")
+cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+args, changed = cfg["args"], 0
+for i, a in enumerate(args):
+    if isinstance(a, str) and a.endswith(".gguf") and pathlib.Path(a).parent != mine:
+        new = mine / pathlib.Path(a).name
+        if not new.is_file():
+            sys.exit(f"STOP: {new} does not exist (is the download complete? step 1)")
+        print(f"{args[i - 1]}:\n   was {a}\n   now {new}")
+        args[i], changed = str(new), changed + 1
+if not changed:
+    sys.exit("Nothing to change: the config already points at the Huihui files.")
+shutil.copy2(cfg_path, str(cfg_path) + ".bak")
+tmp = pathlib.Path(str(cfg_path) + ".tmp")
+tmp.write_text(json.dumps(cfg, indent=1), encoding="utf-8")
+os.replace(tmp, cfg_path)
+print(f"Done: {changed} path(s) changed, the old config is {cfg_path}.bak. Start it with ./run-unsloth-{quant.lower()}.sh")
+EOF
+```
+
+If the stock setup also downloaded the regular Unsloth files (94 GB), the `was` lines above show their folder, and `du -sh` on it tells. Once the Huihui model runs, you can delete the `*-of-0000?.gguf` shards there to get the space back, but keep the `mmproj` file if the config's `vision` part names it: that is the image encoder.
 
 To remove it:
 
@@ -1320,7 +1358,8 @@ Now and then: Strata needs no update to keep working, so update it only when you
 | In the VM, `curl` to Strata hangs or is refused | wrong `PC_IP`, Strata on `127.0.0.1`, or your PC's address changed | redo the "Check that it answers" block of chapter 1 (it prints the address), test with `curl` on the PC using that address, redo the config block of chapter 3 |
 | `401` / `403` / "unauthorized" | the key in `api_keys` isn't Strata's | `cat ~/.strata-key` on the PC, redo the config block |
 | `./setup.sh` or `./update.sh` stops on `calling a __device__ function ... __half_as_ushort`, or says `could not compile the updated engine` | Strata 0.1.45 and newer, compiled with Ubuntu's CUDA 12.0: one debug line that this toolkit refuses | the fold right after the install block in chapter 1 (a one-line fix) |
-| Huihui: setup stops on a SHA-256 or "wrong file" | the guard in `setup.py` is missing, or `STRATA_SKIP_SHA256=1` wasn't set on the setup line | paste step 2 of the Huihui part again; your files are safe in `$LLM_DIR/huihui-qfn` |
+| Huihui: setup stops on a SHA-256 or "wrong file" | the guard in `setup.py` is missing, or `HUIHUI_SKIP_SHA256=1` wasn't set on the setup line | paste step 2 of the Huihui part again; your files are safe in `$LLM_DIR/huihui-qfn` |
+| Huihui: after a `./setup.sh --setup` where you picked "Unsloth", the model is the stock one (the config names files in `Strata-data/models/`) | the Huihui model has the stock model's name, so that setup overwrote its config | "Already overwritten?" in the Huihui part (step 2 again, or the script that points the config back); your Huihui files are untouched |
 | Huihui answers like the stock model | a stock Unsloth pack was reused | move `$LLM_DIR/Strata-data/packs/unsloth-ud-iq4_xs` away (`mv` it to `...iq4_xs.stock`), paste step 2 again |
 | "STOP: no usable /dev/kvm", or `Could not access KVM kernel module` | no virtualization, or no permission | the KVM fold in chapter 2 (BIOS, `modprobe`, `kvm` group) |
 | `./smoler.sh run` can't find the image | the pull didn't finish | `./smoler.sh images`; if the list is empty, `pull` again (or `build`) |
