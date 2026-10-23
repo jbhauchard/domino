@@ -243,38 +243,23 @@ It asks which model size, how much context and if it should read pictures: Enter
 <details markdown="1">
 <summary>It stops on "error: calling a __device__ function ... __half_as_ushort" (the engine does not compile)</summary>
 
-On Ubuntu, Strata compiles its engine itself, with the CUDA 12.0 that comes from apt (its log says `build tools present (CUDA 12.0)`). Since Strata 0.1.45 (October 2026) one debug print in `src/qwen35/q36_engine.cu` calls a CUDA function that this old toolkit only accepts on the GPU side, so the compile stops with:
+On Ubuntu, Strata compiles its engine itself, with the CUDA 12.0 that comes from apt (its log says `build tools present (CUDA 12.0)`). A Strata from 14 to 20 October 2026 has one debug print in `src/qwen35/q36_engine.cu` that calls a CUDA function this old toolkit only accepts on the GPU side, so the compile stops with:
 
 ```
 src/qwen35/q36_engine.cu(1659): error: calling a __device__ function("__half_as_ushort(    ::__half)") from a __host__ function("verify_q8") is not allowed
 ```
 
-This is a bug in Strata (newer CUDA toolkits accept the line), not something you did. What you see depends on the moment: on a **fresh install** the setup stops (`Setup stopped`). On an **update** (`./update.sh`, or a `./setup.sh` after a `git pull`) Strata says `could not compile the updated engine: starting the installed one`: nothing is lost and the old engine keeps working, but each start tries the compile again, for a few minutes, and fails again.
+This was a bug in Strata, not something you did, and Strata fixed it on 20 October (issue #3368): a fresh `git clone` has the fix, and an existing install only needs an update. What you see before that depends on the moment: on a fresh install the setup stops (`Setup stopped`); on an update (`./update.sh`, or a `./setup.sh` after a `git pull`) Strata says `could not compile the updated engine: starting the installed one`: nothing is lost and the old engine keeps working, but each start tries the compile again, for a few minutes, and fails again.
 
-The fix is one line, in that debug print only (the model and its answers are not touched). Paste this; pasting it twice is harmless, and it says so when there is nothing left to fix:
-
-🖥️ **on your PC**
-
-```shell
-. ~/.llm-dir
-F="${LLM_DIR:?do chapter 0 first}/Strata/src/qwen35/q36_engine.cu"
-if grep -q '__half_as_ushort(__float2half(t\[0\]))' "$F"; then
-  sed -i 's/(unsigned) __half_as_ushort(__float2half(t\[0\]))/(unsigned) ((__half_raw) __float2half(t[0])).x/' "$F" &&
-  echo "FIXED. Fresh install: paste the install block above again (it resumes). Existing install: cd \"\$LLM_DIR/Strata\" && ./update.sh"
-else
-  echo "Nothing to fix: that line is not in your Strata (fixed upstream?). If the error is the same, report it at https://github.com/Niko1221/Strata/issues"
-fi
-```
-
-The compile then takes a few minutes. Later, as soon as Strata changes that same file (it does so often, and a fix for this bug would too), `./update.sh` stops with "Your local changes ... would be overwritten" and updates nothing. Give the file back first, then update:
+Update it. The first command gives back this one source file as Strata ships it: it only matters if you edited it by hand (a hand-made fix of this very line would make `git pull` stop with "Your local changes ... would be overwritten"), and it is harmless otherwise. The update then compiles the engine again, a few minutes:
 
 🖥️ **on your PC**
 
 ```shell
-. ~/.llm-dir; cd "$LLM_DIR/Strata" && git checkout -- src/qwen35/q36_engine.cu && ./update.sh
+. ~/.llm-dir; cd "${LLM_DIR:?do chapter 0 first}/Strata" && git checkout -- src/qwen35/q36_engine.cu && ./update.sh
 ```
 
-If the same error comes back, Strata has not fixed it yet: paste the fix block again.
+Still the same error after that? Then your Strata is not up to date (`git log -1` shows its date): report it at [Strata's issues](https://github.com/Niko1221/Strata/issues) with the log.
 
 </details>
 
@@ -1342,7 +1327,7 @@ A few habits that keep it safe: put in the shared folder only what the VM may se
 
 When you game or render, free the GPU: `sh ~/agent-up.sh stop` (Strata and the browser stop; in the VM window, `exit` in each pane shuts the VM down cleanly). Next morning, `sh ~/agent-up.sh` again.
 
-Now and then: Strata needs no update to keep working, so update it only when you want something new in it: `. ~/.llm-dir; cd "$LLM_DIR/Strata" && ./update.sh`, then restart it. That update compiles the engine again (a few minutes). If it ends with `could not compile the updated engine`, nothing is lost, the old engine still runs, but each start retries the compile: the fold after the install block in chapter 1 has the fix. picoclaw updates itself every time the VM boots; for smolBSD, `cd ~/smolBSD && git pull`, and remember that a rebuilt or freshly pulled VM image is a new, empty VM: `save` before, `restore` after. Your router gave your PC another address? Chapter 1's check block prints it, and chapter 3's block takes it.
+Now and then: Strata needs no update to keep working, so update it only when you want something new in it: `. ~/.llm-dir; cd "$LLM_DIR/Strata" && ./update.sh`, then restart it. That update compiles the engine again (a few minutes). If it ends with `could not compile the updated engine`, nothing is lost, the old engine still runs, but each start retries the compile: the fold after the install block in chapter 1 says what to do. picoclaw updates itself every time the VM boots; for smolBSD, `cd ~/smolBSD && git pull`, and remember that a rebuilt or freshly pulled VM image is a new, empty VM: `save` before, `restore` after. Your router gave your PC another address? Chapter 1's check block prints it, and chapter 3's block takes it.
 
 ---
 
@@ -1357,7 +1342,7 @@ Now and then: Strata needs no update to keep working, so update it only when you
 | `ss` shows `127.0.0.1:11434` | Strata (or Ollama) listens on localhost only | host `0.0.0.0` in `strata-<model>.json` (or the Ollama override), restart |
 | In the VM, `curl` to Strata hangs or is refused | wrong `PC_IP`, Strata on `127.0.0.1`, or your PC's address changed | redo the "Check that it answers" block of chapter 1 (it prints the address), test with `curl` on the PC using that address, redo the config block of chapter 3 |
 | `401` / `403` / "unauthorized" | the key in `api_keys` isn't Strata's | `cat ~/.strata-key` on the PC, redo the config block |
-| `./setup.sh` or `./update.sh` stops on `calling a __device__ function ... __half_as_ushort`, or says `could not compile the updated engine` | Strata 0.1.45 and newer, compiled with Ubuntu's CUDA 12.0: one debug line that this toolkit refuses | the fold right after the install block in chapter 1 (a one-line fix) |
+| `./setup.sh` or `./update.sh` stops on `calling a __device__ function ... __half_as_ushort`, or says `could not compile the updated engine` | a Strata from 14 to 20 October 2026, compiled with Ubuntu's CUDA 12.0: one debug line that this toolkit refuses (fixed upstream, #3368) | update Strata: the fold right after the install block in chapter 1 |
 | Huihui: setup stops on a SHA-256 or "wrong file" | the guard in `setup.py` is missing, or `HUIHUI_SKIP_SHA256=1` wasn't set on the setup line | paste step 2 of the Huihui part again; your files are safe in `$LLM_DIR/huihui-qfn` |
 | Huihui: after a `./setup.sh --setup` where you picked "Unsloth", the model is the stock one (the config names files in `Strata-data/models/`) | the Huihui model has the stock model's name, so that setup overwrote its config | "Already overwritten?" in the Huihui part (step 2 again, or the script that points the config back); your Huihui files are untouched |
 | Huihui answers like the stock model | a stock Unsloth pack was reused | move `$LLM_DIR/Strata-data/packs/unsloth-ud-iq4_xs` away (`mv` it to `...iq4_xs.stock`), paste step 2 again |
