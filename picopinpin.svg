@@ -1,320 +1,403 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 900 700" width="900" height="700" role="img" aria-labelledby="ttl dsc">
-  <title id="ttl">Pinpin, man-sized scarlet macaw mascot, juggling gin bottles at the #GCU bar</title>
-  <desc id="dsc">Animated velvet-textured scarlet macaw, 1.75 m tall, juggling three gin bottles in a cascade in front of a bar counter with a pink neon #GCU sign, shelves of bottles and brass pendant lamps.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 900 640" width="900" height="640" role="img" aria-labelledby="ttl dsc">
+  <title id="ttl">Pinpin, the man-sized velvety mascot juggling gin bottles at the #GCU bar</title>
+  <desc id="dsc">A man in an oversized velvety red bird costume, his face peeking out of the hood, juggling three gin bottles behind a cocktail bar lit by a pink neon #GCU sign.</desc>
 
   <defs>
     <linearGradient id="gWall" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2c1b16"/>
-      <stop offset="0.65" stop-color="#1d1210"/>
-      <stop offset="1" stop-color="#150d0b"/>
+      <stop offset="0%" stop-color="#15101f"/>
+      <stop offset="55%" stop-color="#211528"/>
+      <stop offset="100%" stop-color="#0d0913"/>
     </linearGradient>
-    <linearGradient id="gFloor" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#3b2418"/>
-      <stop offset="1" stop-color="#1a0f0a"/>
+    <linearGradient id="gCounter" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7a4f2a"/>
+      <stop offset="45%" stop-color="#4e2f18"/>
+      <stop offset="100%" stop-color="#2b190c"/>
     </linearGradient>
-    <linearGradient id="gWood" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#4a2d1c"/>
-      <stop offset="0.5" stop-color="#5d3a24"/>
-      <stop offset="1" stop-color="#3a2215"/>
+    <linearGradient id="gCove" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb066" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffb066" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="gBody" x1="0.2" y1="0.1" x2="0.85" y2="1">
-      <stop offset="0" stop-color="#e8323f"/>
-      <stop offset="0.45" stop-color="#c8102e"/>
-      <stop offset="1" stop-color="#8c0b21"/>
+    <linearGradient id="gVelvet" x1="0.15" y1="0" x2="0.9" y2="1">
+      <stop offset="0%" stop-color="#ff6a4d"/>
+      <stop offset="38%" stop-color="#e0161c"/>
+      <stop offset="78%" stop-color="#a2090f"/>
+      <stop offset="100%" stop-color="#6d0409"/>
     </linearGradient>
-    <linearGradient id="gWing" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#d81f38"/>
-      <stop offset="1" stop-color="#9c0d24"/>
+    <linearGradient id="gVelvet2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff7a5c"/>
+      <stop offset="60%" stop-color="#c8102e"/>
+      <stop offset="100%" stop-color="#7c0510"/>
     </linearGradient>
-    <linearGradient id="gTail" x1="0.9" y1="0" x2="0.1" y2="1">
-      <stop offset="0" stop-color="#d81f38"/>
-      <stop offset="0.55" stop-color="#c01028"/>
-      <stop offset="0.78" stop-color="#f0b429"/>
-      <stop offset="0.9" stop-color="#2b6cb0"/>
-      <stop offset="1" stop-color="#1a3e7a"/>
+    <radialGradient id="gSheen" cx="0.34" cy="0.26" r="0.72">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="45%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gSkin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7d6b4"/>
+      <stop offset="100%" stop-color="#cf9a70"/>
+    </linearGradient>
+    <linearGradient id="gBeak" x1="0.1" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fff6d8"/>
+      <stop offset="55%" stop-color="#f0d089"/>
+      <stop offset="100%" stop-color="#b08a3c"/>
+    </linearGradient>
+    <linearGradient id="gBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2f86e0"/>
+      <stop offset="100%" stop-color="#0d2f74"/>
     </linearGradient>
     <linearGradient id="gGlass" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#cfe6d8"/>
-      <stop offset="0.35" stop-color="#eff7f1"/>
-      <stop offset="0.75" stop-color="#b9d4c6"/>
-      <stop offset="1" stop-color="#8fb3a3"/>
+      <stop offset="0%" stop-color="#12513f"/>
+      <stop offset="30%" stop-color="#3f9c78"/>
+      <stop offset="55%" stop-color="#8fd9b8"/>
+      <stop offset="78%" stop-color="#2f7f60"/>
+      <stop offset="100%" stop-color="#0f3f31"/>
     </linearGradient>
-    <radialGradient id="gLamp" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#ffd9a0" stop-opacity="0.55"/>
-      <stop offset="0.55" stop-color="#ffb95e" stop-opacity="0.18"/>
-      <stop offset="1" stop-color="#ffb95e" stop-opacity="0"/>
+    <linearGradient id="gAmber" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6d2e0e"/>
+      <stop offset="35%" stop-color="#d98433"/>
+      <stop offset="60%" stop-color="#ffc46b"/>
+      <stop offset="100%" stop-color="#7a3a12"/>
+    </linearGradient>
+    <radialGradient id="gVign" cx="0.5" cy="0.45" r="0.78">
+      <stop offset="55%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.62"/>
     </radialGradient>
-    <radialGradient id="gSpot" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#ffe6c2" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#ffe6c2" stop-opacity="0"/>
-    </radialGradient>
-
-    <!-- velvet nap: soft fuzzy edges, matte (no specular) -->
-    <filter id="velvet" x="-12%" y="-12%" width="124%" height="124%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="2" seed="7" result="nap"/>
-      <feDisplacementMap in="SourceGraphic" in2="nap" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
-    </filter>
-    <filter id="neon" x="-70%" y="-70%" width="240%" height="240%">
+    <filter id="fNeon" x="-70%" y="-70%" width="240%" height="240%">
       <feGaussianBlur stdDeviation="7" result="b"/>
-      <feMerge>
-        <feMergeNode in="b"/>
-        <feMergeNode in="b"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <pattern id="pFuzz" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(22)">
+      <circle cx="2" cy="2" r="1.1" fill="#ffffff" opacity="0.10"/>
+      <circle cx="6.5" cy="5.5" r="1.1" fill="#40060a" opacity="0.16"/>
+    </pattern>
 
-    <!-- juggling cascade: left wing tip to right wing tip over the head -->
-    <path id="arc" d="M 350 312 Q 450 -90 550 312" fill="none"/>
+    <!-- one gin bottle, drawn around its own centre (0,0) -->
+    <g id="gin">
+      <path d="M-13,-46 L13,-46 L13,-26 C25,-17 29,-4 29,14 L29,46 C29,54 23,58 14,58 L-14,58 C-23,58 -29,54 -29,46 L-29,14 C-29,-4 -25,-17 -13,-26 Z" fill="url(#gGlass)"/>
+      <path d="M-13,-46 L13,-46 L13,-26 C25,-17 29,-4 29,14 L29,46 C29,54 23,58 14,58 L-14,58 C-23,58 -29,54 -29,46 L-29,14 C-29,-4 -25,-17 -13,-26 Z" fill="none" stroke="#08352a" stroke-width="2.2" stroke-opacity="0.55"/>
+      <rect x="-16" y="-62" width="32" height="18" rx="3" fill="url(#gAmber)"/>
+      <rect x="-16" y="-62" width="32" height="6" rx="3" fill="#8a4a1c" opacity="0.7"/>
+      <rect x="-24" y="8" width="48" height="34" rx="4" fill="#f7f2e6"/>
+      <text x="0" y="32" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="21" font-weight="bold" fill="#12513f" letter-spacing="1">GIN</text>
+      <rect x="-24" y="8" width="48" height="34" rx="4" fill="none" stroke="#c9bda2" stroke-width="1.4"/>
+      <path d="M-19,-40 L-19,44" stroke="#ffffff" stroke-opacity="0.45" stroke-width="4" stroke-linecap="round"/>
+      <path d="M19,-20 C24,-8 24,20 20,40" stroke="#03231b" stroke-opacity="0.30" stroke-width="5" stroke-linecap="round" fill="none"/>
+    </g>
 
-    <!-- one gin bottle, drawn centred on its own origin so it can spin -->
-    <g id="bottle">
-      <rect x="-9" y="-36" width="18" height="16" fill="url(#gGlass)"/>
-      <path d="M -8,-22 C -8,-14 -16,-14 -16,-2 L -16,30 Q -16,40 -6,40 L 6,40 Q 16,40 16,30 L 16,-2 C 16,-14 8,-14 8,-22 Z" fill="url(#gGlass)"/>
-      <path d="M -8,-22 C -8,-14 -16,-14 -16,-2 L -16,30 Q -16,40 -6,40 L 6,40 Q 16,40 16,30 L 16,-2 C 16,-14 8,-14 8,-22 Z" fill="none" stroke="#6f8f80" stroke-width="1.2" opacity="0.7"/>
-      <rect x="-13" y="2" width="26" height="24" rx="3" fill="#f6f1e5" stroke="#cfc4ad" stroke-width="1"/>
-      <text x="0" y="16" font-family="Verdana, DejaVu Sans, sans-serif" font-size="10" letter-spacing="1" text-anchor="middle" fill="#1f3b2d">GIN</text>
-      <circle cx="-6" cy="22" r="1.7" fill="#2e6b3f"/>
-      <circle cx="0" cy="24" r="1.7" fill="#2e6b3f"/>
-      <circle cx="6" cy="22" r="1.7" fill="#2e6b3f"/>
-      <rect x="-11" y="-4" width="4" height="34" rx="2" fill="#ffffff" opacity="0.38"/>
-      <rect x="-9" y="-40" width="18" height="6" rx="2" fill="#c9a227"/>
-      <rect x="-9" y="-46" width="18" height="8" rx="3" fill="#8d6a3f"/>
+    <!-- a shelf bottle for the back bar -->
+    <g id="shelfb">
+      <path d="M-6,-40 L6,-40 L6,-24 C12,-18 14,-8 14,4 L14,34 C14,39 11,41 6,41 L-6,41 C-11,41 -14,39 -14,34 L-14,4 C-14,-8 -12,-18 -6,-24 Z"/>
+      <rect x="-7" y="-50" width="14" height="11" rx="2" fill="#3a2a18"/>
     </g>
   </defs>
 
-  <!-- ================= ROOM ================= -->
-  <rect width="900" height="700" fill="url(#gWall)"/>
-  <rect y="645" width="900" height="55" fill="url(#gFloor)"/>
-  <path d="M0,645 H900" stroke="#0c0705" stroke-width="3"/>
-  <g stroke="#0f0907" stroke-width="1.5" opacity="0.5">
-    <path d="M120,645 V700"/><path d="M280,645 V700"/><path d="M440,645 V700"/><path d="M600,645 V700"/><path d="M760,645 V700"/>
-  </g>
-  <g fill="url(#gSpot)">
-    <circle cx="180" cy="230" r="120"/><circle cx="640" cy="330" r="140"/><circle cx="420" cy="520" r="150"/>
-  </g>
-  <!-- bokeh -->
-  <g fill="#ffcf8f" opacity="0.07">
-    <circle cx="90" cy="140" r="26"/><circle cx="150" cy="330" r="16"/><circle cx="820" cy="120" r="22"/><circle cx="560" cy="150" r="13"/>
+  <!-- ================= BACKDROP ================= -->
+  <rect width="900" height="640" fill="url(#gWall)"/>
+  <rect y="300" width="900" height="150" fill="#1a1122" opacity="0.6"/>
+  <rect y="440" width="900" height="200" fill="#0a0710"/>
+
+  <!-- back bar shelves -->
+  <g opacity="0.85">
+    <rect x="40" y="252" width="250" height="10" rx="3" fill="#5b3a1e"/>
+    <rect x="610" y="252" width="250" height="10" rx="3" fill="#5b3a1e"/>
+    <rect x="40" y="352" width="250" height="10" rx="3" fill="#5b3a1e"/>
+    <rect x="610" y="352" width="250" height="10" rx="3" fill="#5b3a1e"/>
+    <g transform="translate(70,210) scale(0.8)"><use href="#shelfb" xlink:href="#shelfb" fill="#7b2233"/></g>
+    <g transform="translate(110,206) scale(0.9)"><use href="#shelfb" xlink:href="#shelfb" fill="#2f6b4f"/></g>
+    <g transform="translate(155,212) scale(0.75)"><use href="#shelfb" xlink:href="#shelfb" fill="#8a6a1f"/></g>
+    <g transform="translate(200,204) scale(0.95)"><use href="#shelfb" xlink:href="#shelfb" fill="#2b4a7a"/></g>
+    <g transform="translate(248,212) scale(0.8)"><use href="#shelfb" xlink:href="#shelfb" fill="#6b2a6b"/></g>
+    <g transform="translate(640,208) scale(0.85)"><use href="#shelfb" xlink:href="#shelfb" fill="#2f6b4f"/></g>
+    <g transform="translate(685,214) scale(0.72)"><use href="#shelfb" xlink:href="#shelfb" fill="#8a6a1f"/></g>
+    <g transform="translate(728,204) scale(0.95)"><use href="#shelfb" xlink:href="#shelfb" fill="#7b2233"/></g>
+    <g transform="translate(775,210) scale(0.8)"><use href="#shelfb" xlink:href="#shelfb" fill="#2b4a7a"/></g>
+    <g transform="translate(820,212) scale(0.78)"><use href="#shelfb" xlink:href="#shelfb" fill="#4a6b3a"/></g>
+    <g transform="translate(70,310) scale(0.8)"><use href="#shelfb" xlink:href="#shelfb" fill="#4a6b3a"/></g>
+    <g transform="translate(115,314) scale(0.72)"><use href="#shelfb" xlink:href="#shelfb" fill="#7b2233"/></g>
+    <g transform="translate(160,306) scale(0.9)"><use href="#shelfb" xlink:href="#shelfb" fill="#8a6a1f"/></g>
+    <g transform="translate(210,312) scale(0.78)"><use href="#shelfb" xlink:href="#shelfb" fill="#2f6b4f"/></g>
+    <g transform="translate(660,308) scale(0.86)"><use href="#shelfb" xlink:href="#shelfb" fill="#6b2a6b"/></g>
+    <g transform="translate(705,312) scale(0.74)"><use href="#shelfb" xlink:href="#shelfb" fill="#2f6b4f"/></g>
+    <g transform="translate(750,306) scale(0.9)"><use href="#shelfb" xlink:href="#shelfb" fill="#8a6a1f"/></g>
+    <g transform="translate(800,312) scale(0.8)"><use href="#shelfb" xlink:href="#shelfb" fill="#7b2233"/></g>
   </g>
 
-  <!-- ================= BACK BAR (right) ================= -->
+  <!-- warm cove light -->
+  <ellipse cx="450" cy="120" rx="430" ry="150" fill="url(#gCove)" opacity="0.5"/>
+
+  <!-- ================= NEON #GCU SIGN ================= -->
+  <g filter="url(#fNeon)" opacity="0.95">
+    <text x="452" y="118" text-anchor="middle" font-family="'Trebuchet MS', Verdana, sans-serif" font-size="86" font-weight="bold" fill="none" stroke="#ff3fa4" stroke-width="3.4" letter-spacing="6">#GCU
+      <animate attributeName="opacity" values="1;1;0.35;1;1;0.6;1;1" keyTimes="0;0.42;0.44;0.47;0.78;0.80;0.83;1" dur="6.5s" repeatCount="indefinite"/>
+    </text>
+    <text x="452" y="118" text-anchor="middle" font-family="'Trebuchet MS', Verdana, sans-serif" font-size="86" font-weight="bold" fill="#ffd9ee" letter-spacing="6">#GCU
+      <animate attributeName="opacity" values="1;1;0.35;1;1;0.6;1;1" keyTimes="0;0.42;0.44;0.47;0.78;0.80;0.83;1" dur="6.5s" repeatCount="indefinite"/>
+    </text>
+  </g>
+  <text x="452" y="150" text-anchor="middle" font-family="'Trebuchet MS', Verdana, sans-serif" font-size="17" fill="#ff8fc9" opacity="0.75" letter-spacing="9">BAR</text>
+
+  <!-- ================= PINPIN: A MAN IN A VELVET COSTUME ================= -->
+
+  <!-- costume tail, pinned at the lower back, behind the counter -->
   <g>
-    <rect x="520" y="200" width="360" height="445" fill="#241512" stroke="#120a08" stroke-width="3"/>
-    <rect x="534" y="214" width="332" height="150" fill="#1b100e"/>
-    <rect x="520" y="364" width="360" height="12" fill="url(#gWood)"/>
-    <rect x="520" y="452" width="360" height="12" fill="url(#gWood)"/>
-    <!-- bottles on the upper shelf -->
-    <g>
-      <rect x="548" y="312" width="22" height="52" rx="4" fill="#2e7d32"/>
-      <rect x="556" y="300" width="6" height="14" fill="#2e7d32"/>
-      <rect x="586" y="304" width="20" height="60" rx="4" fill="#6d4c41"/>
-      <rect x="593" y="292" width="6" height="14" fill="#6d4c41"/>
-      <rect x="622" y="318" width="24" height="46" rx="4" fill="#00838f"/>
-      <rect x="631" y="306" width="6" height="14" fill="#00838f"/>
-      <rect x="664" y="308" width="20" height="56" rx="4" fill="#c62828"/>
-      <rect x="671" y="296" width="6" height="14" fill="#c62828"/>
-      <rect x="700" y="316" width="22" height="48" rx="4" fill="#b08d57"/>
-      <rect x="708" y="304" width="6" height="14" fill="#b08d57"/>
-      <rect x="742" y="306" width="18" height="58" rx="4" fill="#37474f"/>
-      <rect x="748" y="294" width="6" height="14" fill="#37474f"/>
-      <rect x="778" y="320" width="24" height="44" rx="4" fill="#7b1fa2"/>
-      <rect x="787" y="308" width="6" height="14" fill="#7b1fa2"/>
-      <rect x="820" y="310" width="20" height="54" rx="4" fill="#00695c"/>
-      <rect x="827" y="298" width="6" height="14" fill="#00695c"/>
-    </g>
-    <!-- glasses on the lower shelf -->
-    <g fill="#dfeae6" opacity="0.62">
-      <path d="M556,452 v-30 h20 v30 z M552,452 h28 v5 h-28 z"/>
-      <path d="M596,452 v-30 h20 v30 z M592,452 h28 v5 h-28 z"/>
-      <path d="M640,452 l10,-30 10,30 z M636,452 h28 v5 h-28 z"/>
-      <path d="M700,452 v-26 q10,-8 20,0 v26 z"/>
-      <path d="M742,452 v-26 q10,-8 20,0 v26 z"/>
-    </g>
-    <!-- bartender behind the counter: same 1.75 m, legs hidden by the bar -->
-    <g opacity="0.5" fill="#0d0806">
-      <circle cx="700" cy="272" r="27"/>
-      <path d="M700,301 q-48,6 -52,64 l0,280 h104 l0,-280 q-4,-58 -52,-64 z"/>
-    </g>
-    <!-- counter top, taps, foot rail -->
-    <rect x="512" y="464" width="376" height="16" rx="4" fill="#6b4429"/>
-    <rect x="512" y="478" width="376" height="167" fill="#2b1a13"/>
-    <g>
-      <rect x="616" y="500" width="9" height="34" rx="3" fill="#c9a227"/>
-      <circle cx="620" cy="496" r="9" fill="#8d6a3f"/>
-      <rect x="656" y="500" width="9" height="34" rx="3" fill="#c9a227"/>
-      <circle cx="660" cy="496" r="9" fill="#a3341f"/>
-    </g>
-    <rect x="520" y="612" width="360" height="7" rx="3" fill="#c9a227" opacity="0.75"/>
-    <!-- chalk menu -->
-    <rect x="700" y="512" width="150" height="78" rx="6" fill="#141a17" stroke="#5d3a24" stroke-width="4"/>
-    <text x="775" y="542" font-family="Verdana, DejaVu Sans, sans-serif" font-size="17" text-anchor="middle" fill="#e8dcc0">GIN TONIC</text>
-    <text x="775" y="570" font-family="Verdana, DejaVu Sans, sans-serif" font-size="15" text-anchor="middle" fill="#cbb894">4 EUR  -  2 FOR 7</text>
+    <animateTransform attributeName="transform" type="rotate" values="-2.4 520 430;2.4 520 430;-2.4 520 430" dur="5.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+    <path d="M500,420 C560,452 640,512 706,580 C742,616 762,646 768,664 L716,668 C688,632 622,560 552,506 C520,480 498,456 490,438 Z" fill="#c8102e"/>
+    <path d="M505,436 C566,470 642,530 700,592 C728,622 744,644 750,660 L726,662 C700,628 636,564 566,514 C534,490 512,466 504,450 Z" fill="#9d0a1e"/>
+    <path d="M700,586 C726,614 748,644 758,664 L716,668 C706,648 690,622 672,598 Z" fill="#1b3f8f"/>
+    <path d="M742,650 C752,658 758,662 762,666 L722,668 C720,662 716,656 712,650 Z" fill="#f2efe6"/>
+    <path d="M512,448 C572,486 640,546 692,606" stroke="#ff6a4d" stroke-width="3" stroke-opacity="0.5" fill="none"/>
   </g>
 
-  <!-- ================= NEON #GCU ================= -->
-  <g filter="url(#neon)">
-    <text x="160" y="132" font-family="Trebuchet MS, Verdana, sans-serif" font-size="76" font-weight="bold" text-anchor="middle" fill="#ff2d75" stroke="#ffb3cd" stroke-width="1.5">#GCU</text>
-    <animate attributeName="opacity" values="1;1;0.62;1;0.9;1;1;0.55;1;1" keyTimes="0;0.28;0.31;0.34;0.42;0.46;0.78;0.81;0.85;1" dur="5.5s" repeatCount="indefinite"/>
-  </g>
-  <rect x="50" y="66" width="220" height="82" rx="14" fill="none" stroke="#ff2d75" stroke-width="3" opacity="0.35" filter="url(#neon)"/>
-
-  <!-- ================= PENDANT LAMPS ================= -->
   <g>
-    <path d="M300,0 V118" stroke="#7a5a3a" stroke-width="3"/>
-    <path d="M266,166 q34,-56 68,0 z" fill="#8d6a3f"/>
-    <ellipse cx="300" cy="166" rx="34" ry="8" fill="#ffd9a0" opacity="0.85"/>
-    <circle cx="300" cy="196" r="86" fill="url(#gLamp)">
-      <animate attributeName="opacity" values="0.9;1;0.86;1;0.9" dur="4.2s" repeatCount="indefinite"/>
-    </circle>
-    <path d="M600,0 V86" stroke="#7a5a3a" stroke-width="3"/>
-    <path d="M566,134 q34,-56 68,0 z" fill="#8d6a3f"/>
-    <ellipse cx="600" cy="134" rx="34" ry="8" fill="#ffd9a0" opacity="0.85"/>
-    <circle cx="600" cy="164" r="86" fill="url(#gLamp)">
-      <animate attributeName="opacity" values="1;0.88;1;0.94;1" dur="3.6s" repeatCount="indefinite"/>
-    </circle>
+    <animateTransform attributeName="transform" type="translate" values="0 0;0 -7;0 0" dur="3.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+
+    <!-- wing cape hanging from the shoulders, at his back -->
+    <g>
+      <path d="M510,364 C556,372 596,396 620,424 C630,436 622,446 608,440 C576,426 540,402 518,384 C508,376 504,366 510,364 Z" fill="#a80d1e"/>
+      <path d="M520,388 C566,404 612,436 644,472 C654,484 646,494 632,488 C598,472 560,446 532,420 C520,408 514,392 520,388 Z" fill="url(#gBlue)"/>
+      <path d="M618,460 C630,468 640,478 646,486 C638,490 626,488 616,480 Z" fill="#f2efe6"/>
+      <g fill="none" stroke="#0d2f74" stroke-opacity="0.5" stroke-width="2">
+        <path d="M536,408 C566,424 600,450 622,472"/>
+        <path d="M552,398 C582,412 612,434 634,456"/>
+      </g>
+    </g>
+
+    <!-- torso: human shoulders, stuffed velvet body -->
+    <g>
+      <path id="torso" d="M362,356 C340,366 334,404 338,448 C342,492 360,520 400,524 C440,528 470,528 506,522 C542,516 552,486 552,444 C552,402 544,366 520,356 C470,342 412,342 362,356 Z" fill="url(#gVelvet)"/>
+      <path d="M362,356 C340,366 334,404 338,448 C342,492 360,520 400,524 C440,528 470,528 506,522 C542,516 552,486 552,444 C552,402 544,366 520,356 C470,342 412,342 362,356 Z" fill="url(#pFuzz)"/>
+      <path d="M362,356 C340,366 334,404 338,448 C342,492 360,520 400,524 C440,528 470,528 506,522 C542,516 552,486 552,444 C552,402 544,366 520,356 C470,342 412,342 362,356 Z" fill="url(#gSheen)"/>
+      <!-- velvety nap: soft feather scallops on the chest -->
+      <g fill="none" stroke="#ff8a6e" stroke-opacity="0.30" stroke-width="3" stroke-linecap="round">
+        <path d="M372,404 C384,416 398,416 410,404"/>
+        <path d="M414,424 C426,436 440,436 452,424"/>
+        <path d="M366,448 C378,460 392,460 404,448"/>
+        <path d="M410,466 C422,478 436,478 448,466"/>
+        <path d="M372,488 C384,500 398,500 410,488"/>
+      </g>
+      <g fill="none" stroke="#5e0409" stroke-opacity="0.22" stroke-width="3" stroke-linecap="round">
+        <path d="M376,412 C388,424 402,424 414,412"/>
+        <path d="M418,432 C430,444 444,444 456,432"/>
+        <path d="M370,456 C382,468 396,468 408,456"/>
+      </g>
+      <!-- the costume zip, pull tab at the collar -->
+      <path d="M448,372 L448,470" stroke="#5e0409" stroke-width="4" stroke-opacity="0.75"/>
+      <path d="M448,372 L448,470" stroke="#ffd7a0" stroke-width="2" stroke-opacity="0.55" stroke-dasharray="3 5"/>
+      <rect x="443" y="366" width="10" height="13" rx="3" fill="#e8c46a" stroke="#8a6a2c" stroke-width="1.2"/>
+    </g>
+
+    <!-- far arm: shoulder, elbow, wrist, plush glove -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="-9 356 368;7 356 368;-9 356 368" dur="1.9s" repeatCount="indefinite" calcMode="spline" keySplines="0.3 0 0.7 1;0.3 0 0.7 1"/>
+      <path d="M356,368 C330,356 306,342 296,322 C288,304 280,282 272,258" fill="none" stroke="#6d0409" stroke-width="35" stroke-linecap="round" stroke-opacity="0.85"/>
+      <path d="M356,368 C330,356 306,342 296,322 C288,304 280,282 272,258" fill="none" stroke="url(#gVelvet2)" stroke-width="30" stroke-linecap="round"/>
+      <path d="M356,368 C330,356 306,342 296,322 C288,304 280,282 272,258" fill="none" stroke="#ff8a6e" stroke-opacity="0.22" stroke-width="2" stroke-linecap="round"/>
+      <!-- shoulder epaulette of feathers -->
+      <g fill="#c8102e" stroke="#6d0409" stroke-width="1.4" stroke-opacity="0.6">
+        <ellipse cx="360" cy="360" rx="26" ry="19" transform="rotate(-28 360 360)"/>
+      </g>
+      <!-- cuff: white band then blue feather tips, then the glove -->
+      <ellipse cx="277" cy="272" rx="19" ry="13" fill="#f4f1ea" transform="rotate(-70 277 272)"/>
+      <path d="M266,282 C258,290 254,300 258,306 C268,304 276,296 280,286 Z" fill="url(#gBlue)"/>
+      <g transform="translate(268,250) rotate(-18)">
+        <ellipse cx="0" cy="0" rx="19" ry="16" fill="#d8172c" stroke="#6d0409" stroke-width="1.6"/>
+        <g fill="#e0161c" stroke="#6d0409" stroke-width="1.3">
+          <ellipse cx="-9" cy="-17" rx="5.4" ry="9"/>
+          <ellipse cx="0" cy="-20" rx="5.4" ry="10"/>
+          <ellipse cx="9" cy="-17" rx="5.4" ry="9"/>
+          <ellipse cx="16" cy="-6" rx="8" ry="5.6" transform="rotate(30 16 -6)"/>
+        </g>
+        <path d="M-8,4 C-2,8 6,8 12,4" fill="none" stroke="#6d0409" stroke-width="1.6" stroke-opacity="0.55"/>
+      </g>
+    </g>
+
+    <!-- feather collar ruff -->
+    <g>
+      <path d="M356,346 C380,330 420,322 448,322 C478,322 516,332 538,348 C540,362 534,374 522,378 C500,368 470,362 448,362 C424,362 396,368 374,378 C360,372 354,358 356,346 Z" fill="url(#gVelvet2)"/>
+      <path d="M356,346 C380,330 420,322 448,322 C478,322 516,332 538,348 C540,362 534,374 522,378 C500,368 470,362 448,362 C424,362 396,368 374,378 C360,372 354,358 356,346 Z" fill="url(#pFuzz)"/>
+      <g fill="none" stroke="#5e0409" stroke-opacity="0.4" stroke-width="2.4">
+        <path d="M374,376 C382,366 392,362 402,362"/>
+        <path d="M404,368 C412,358 422,354 432,354"/>
+        <path d="M436,364 C444,354 454,352 464,352"/>
+        <path d="M468,366 C476,358 486,356 496,358"/>
+        <path d="M500,372 C508,364 516,362 524,364"/>
+      </g>
+      <path d="M520,360 C532,364 540,370 544,378 C536,382 526,380 518,374 Z" fill="url(#gBlue)" opacity="0.9"/>
+    </g>
+
+    <!-- the hood, with a man's face inside -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="-2.5 448 330;2.5 448 330;-2.5 448 330" dur="4.1s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+      <!-- hair escaping at the back of the hood -->
+      <g fill="none" stroke="#3a2a1e" stroke-width="4" stroke-linecap="round" opacity="0.9">
+        <path d="M498,232 C508,226 516,228 520,236"/>
+        <path d="M502,246 C514,242 522,246 524,254"/>
+        <path d="M496,218 C504,210 512,210 518,216"/>
+      </g>
+      <ellipse cx="428" cy="252" rx="76" ry="68" fill="url(#gVelvet)"/>
+      <ellipse cx="428" cy="252" rx="76" ry="68" fill="url(#pFuzz)"/>
+      <ellipse cx="428" cy="252" rx="76" ry="68" fill="url(#gSheen)"/>
+      <!-- crest plumes on top of the hood -->
+      <g fill="#c8102e" stroke="#6d0409" stroke-width="1.4" stroke-opacity="0.7">
+        <path d="M424,188 C420,172 424,160 434,154 C440,166 440,178 436,190 Z"/>
+        <path d="M444,190 C446,174 454,164 466,160 C466,174 462,186 454,194 Z"/>
+        <path d="M404,192 C396,180 394,168 398,158 C408,166 412,178 412,190 Z"/>
+      </g>
+      <!-- velvety nap on the crown -->
+      <g fill="none" stroke="#ff8a6e" stroke-opacity="0.32" stroke-width="2.4" stroke-linecap="round">
+        <path d="M462,214 C474,218 484,226 490,236"/>
+        <path d="M470,232 C480,238 488,246 492,256"/>
+        <path d="M398,208 C410,200 424,196 438,196"/>
+      </g>
+      <!-- hood opening: pale rim, then the man's face -->
+      <ellipse cx="402" cy="278" rx="44" ry="40" fill="#f4efe4" stroke="#6d0409" stroke-width="2.4" stroke-opacity="0.5"/>
+      <ellipse cx="402" cy="280" rx="38" ry="34" fill="url(#gSkin)"/>
+      <path d="M402,246 C424,246 440,260 440,280" fill="none" stroke="#8a5a3c" stroke-width="3" stroke-opacity="0.35"/>
+      <!-- eyebrows -->
+      <g fill="none" stroke="#4a3524" stroke-width="4.4" stroke-linecap="round">
+        <path d="M370,258 C376,252 386,251 394,255"/>
+        <path d="M410,254 C418,250 428,251 434,257"/>
+      </g>
+      <!-- eyes -->
+      <g>
+        <ellipse cx="382" cy="276" rx="10.5" ry="8.4" fill="#ffffff"/>
+        <circle cx="383" cy="276" r="5" fill="#6b4423"/>
+        <circle cx="383" cy="276" r="2.4" fill="#1a1008"/>
+        <circle cx="380.6" cy="273.6" r="1.7" fill="#ffffff" opacity="0.95"/>
+        <path d="M371,272 C376,267 388,267 393,272" fill="none" stroke="#3a2a1e" stroke-width="2" stroke-opacity="0.7"/>
+        <ellipse cx="418" cy="274" rx="9.4" ry="7.8" fill="#ffffff"/>
+        <circle cx="418" cy="274" r="4.6" fill="#6b4423"/>
+        <circle cx="418" cy="274" r="2.2" fill="#1a1008"/>
+        <circle cx="415.8" cy="271.8" r="1.6" fill="#ffffff" opacity="0.95"/>
+        <path d="M408,270 C413,266 424,266 428,270" fill="none" stroke="#3a2a1e" stroke-width="2" stroke-opacity="0.7"/>
+      </g>
+      <!-- nose, cheek, mouth: the man, under the costume's beak -->
+      <path d="M402,280 C406,290 404,298 398,300" fill="none" stroke="#b87d55" stroke-width="3.4" stroke-linecap="round" stroke-opacity="0.85"/>
+      <ellipse cx="374" cy="294" rx="8" ry="5" fill="#e08a72" opacity="0.42"/>
+      <path d="M386,302 C396,312 412,312 422,300" fill="none" stroke="#8a4a3a" stroke-width="4" stroke-linecap="round"/>
+      <path d="M392,308 C400,314 412,314 418,306" fill="#c9705e" opacity="0.55"/>
+      <!-- the costume beak, jutting from the top of the hood, slightly too big for him -->
+      <g transform="translate(4,-34)">
+        <path d="M366,238 C332,236 302,252 292,276 C286,292 294,304 308,302 C326,300 344,288 356,274 C364,264 368,246 366,238 Z" fill="url(#gBeak)"/>
+        <path d="M366,238 C332,236 302,252 292,276 C289,282 288,288 289,293 C300,277 322,266 346,263 C358,261 365,257 366,251 Z" fill="#ffffff" opacity="0.35"/>
+        <path d="M292,276 C284,288 286,300 296,304" fill="none" stroke="#8a6a2c" stroke-opacity="0.6" stroke-width="2.4"/>
+        <circle cx="338" cy="256" r="2.6" fill="#8a6a2c" opacity="0.7"/>
+        <path d="M352,278 C340,290 330,300 324,312 C336,316 350,310 360,298 C364,292 362,282 356,278 Z" fill="#c9a24a"/>
+        <path d="M354,282 C344,292 336,300 330,308" fill="none" stroke="#8a6a2c" stroke-width="2" stroke-opacity="0.5"/>
+      </g>
+    </g>
+
+    <!-- near arm: raised, juggling -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="8 528 366;-10 528 366;8 528 366" dur="1.9s" repeatCount="indefinite" calcMode="spline" keySplines="0.3 0 0.7 1;0.3 0 0.7 1"/>
+      <path d="M528,366 C560,358 592,346 606,328 C616,314 620,288 620,260" fill="none" stroke="#6d0409" stroke-width="35" stroke-linecap="round" stroke-opacity="0.85"/>
+      <path d="M528,366 C560,358 592,346 606,328 C616,314 620,288 620,260" fill="none" stroke="url(#gVelvet2)" stroke-width="30" stroke-linecap="round"/>
+      <path d="M528,366 C560,358 592,346 606,328 C616,314 620,288 620,260" fill="none" stroke="#ff8a6e" stroke-opacity="0.22" stroke-width="2" stroke-linecap="round"/>
+      <ellipse cx="530" cy="362" rx="27" ry="20" fill="#c8102e" stroke="#6d0409" stroke-width="1.4" stroke-opacity="0.6" transform="rotate(24 530 362)"/>
+      <g fill="none" stroke="#ff8a6e" stroke-opacity="0.35" stroke-width="2.4" stroke-linecap="round">
+        <path d="M512,352 C522,362 534,366 546,364"/>
+        <path d="M518,370 C528,380 540,382 552,378"/>
+      </g>
+      <ellipse cx="618" cy="276" rx="19" ry="13" fill="#f4f1ea" transform="rotate(70 618 276)"/>
+      <path d="M628,286 C636,294 640,304 636,310 C626,308 618,300 614,290 Z" fill="url(#gBlue)"/>
+      <g transform="translate(620,252) rotate(16)">
+        <ellipse cx="0" cy="0" rx="19" ry="16" fill="#d8172c" stroke="#6d0409" stroke-width="1.6"/>
+        <g fill="#e0161c" stroke="#6d0409" stroke-width="1.3">
+          <ellipse cx="9" cy="-17" rx="5.4" ry="9"/>
+          <ellipse cx="0" cy="-20" rx="5.4" ry="10"/>
+          <ellipse cx="-9" cy="-17" rx="5.4" ry="9"/>
+          <ellipse cx="-16" cy="-6" rx="8" ry="5.6" transform="rotate(-30 -16 -6)"/>
+        </g>
+        <path d="M-8,4 C-2,8 6,8 12,4" fill="none" stroke="#6d0409" stroke-width="1.6" stroke-opacity="0.55"/>
+      </g>
+    </g>
   </g>
 
-  <!-- ================= FLOOR SHADOW ================= -->
-  <ellipse cx="450" cy="650" rx="112" ry="17" fill="#000000" opacity="0.4">
-    <animate attributeName="rx" values="112;104;112" dur="1.6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-  </ellipse>
-
-  <!-- ================= PINPIN THE MACAW (1.75 m) ================= -->
-  <g filter="url(#velvet)">
-    <animateTransform attributeName="transform" type="translate" values="0 0;0 -8;0 0" dur="1.6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-
-    <!-- tail -->
-    <g>
-      <animateTransform attributeName="transform" type="rotate" values="-3 448 516;3 448 516;-3 448 516" dur="2.4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-      <path d="M448,508 C432,566 396,616 336,656 L318,634 C376,594 408,552 420,502 Z" fill="url(#gTail)"/>
-      <path d="M440,512 C426,566 396,610 344,646" fill="none" stroke="#7c0a1c" stroke-width="2" opacity="0.45"/>
-    </g>
-
-    <!-- legs + feet -->
-    <g>
-      <rect x="418" y="548" width="20" height="66" rx="9" fill="#8a8f96"/>
-      <rect x="462" y="548" width="20" height="66" rx="9" fill="#767b82"/>
-      <g fill="#6d7278">
-        <path d="M400,634 q38,-16 60,0 q-6,12 -30,12 q-24,0 -30,-12 z"/>
-        <path d="M444,634 q38,-16 60,0 q-6,12 -30,12 q-24,0 -30,-12 z"/>
-      </g>
-      <g stroke="#4d5157" stroke-width="2" opacity="0.7">
-        <path d="M414,632 v12"/><path d="M430,630 v14"/><path d="M458,632 v12"/><path d="M474,630 v14"/>
-      </g>
-    </g>
-
-    <!-- body -->
-    <path d="M450,344 C512,344 542,398 542,456 C542,528 506,566 450,566 C394,566 358,528 358,456 C358,398 388,344 450,344 Z" fill="url(#gBody)"/>
-    <!-- velvet nap lines on the chest -->
-    <g fill="none" stroke="#8c0b21" stroke-width="2" opacity="0.22">
-      <path d="M398,404 q52,26 104,0"/>
-      <path d="M390,436 q60,28 120,0"/>
-      <path d="M392,468 q58,26 116,0"/>
-      <path d="M402,500 q48,22 96,0"/>
-    </g>
-    <path d="M450,344 C512,344 542,398 542,456 C542,528 506,566 450,566" fill="none" stroke="#6f0717" stroke-width="3" opacity="0.25"/>
-
-    <!-- raised wings = juggling arms -->
-    <g>
-      <animateTransform attributeName="transform" type="rotate" values="0 405 380;-5 405 380;0 405 380" dur="1.6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-      <path d="M405,380 C372,362 358,338 350,314" fill="none" stroke="url(#gWing)" stroke-width="30" stroke-linecap="round"/>
-      <g>
-        <path d="M350,314 q-30,-6 -38,-26 q26,-4 40,10 z" fill="#f2ece6"/>
-        <path d="M350,314 q-24,-16 -24,-40 q22,8 30,30 z" fill="#2b6cb0"/>
-        <path d="M352,312 q-10,-26 2,-46 q14,16 10,42 z" fill="#1a3e7a"/>
-      </g>
-      <path d="M405,380 C372,362 358,338 350,314" fill="none" stroke="#7c0a1c" stroke-width="2" opacity="0.3"/>
-    </g>
-    <g>
-      <animateTransform attributeName="transform" type="rotate" values="0 495 380;5 495 380;0 495 380" dur="1.6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-      <path d="M495,380 C528,362 542,338 550,314" fill="none" stroke="url(#gWing)" stroke-width="30" stroke-linecap="round"/>
-      <g>
-        <path d="M550,314 q30,-6 38,-26 q-26,-4 -40,10 z" fill="#f2ece6"/>
-        <path d="M550,314 q24,-16 24,-40 q-22,8 -30,30 z" fill="#2b6cb0"/>
-        <path d="M548,312 q10,-26 -2,-46 q-14,16 -10,42 z" fill="#1a3e7a"/>
-      </g>
-      <path d="M495,380 C528,362 542,338 550,314" fill="none" stroke="#7c0a1c" stroke-width="2" opacity="0.3"/>
-    </g>
-
-    <!-- velvet bow tie -->
-    <g>
-      <path d="M450,368 l-26,-13 v26 z" fill="#7b1e2b"/>
-      <path d="M450,368 l26,-13 v26 z" fill="#8e2434"/>
-      <rect x="443" y="360" width="14" height="16" rx="4" fill="#5f1620"/>
-    </g>
-
-    <!-- head -->
-    <g>
-      <animateTransform attributeName="transform" type="rotate" values="-2 450 344;2 450 344;-2 450 344" dur="3.2s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-      <circle cx="450" cy="302" r="57" fill="url(#gBody)"/>
-      <path d="M424,250 q10,-14 22,-6 M446,246 q8,-13 20,-4" fill="none" stroke="#8c0b21" stroke-width="2.5" opacity="0.5"/>
-      <!-- bare face patch -->
-      <ellipse cx="474" cy="304" rx="28" ry="25" fill="#f7efe9"/>
-      <g stroke="#d98f9c" stroke-width="1.6" opacity="0.85" fill="none">
-        <path d="M456,292 q16,-4 30,2"/>
-        <path d="M454,304 q18,-4 34,2"/>
-        <path d="M458,316 q16,-2 28,4"/>
-      </g>
-      <!-- eye -->
-      <circle cx="478" cy="288" r="9" fill="#f6d365"/>
-      <circle cx="479" cy="288" r="4.6" fill="#1a1a1a"/>
-      <circle cx="481" cy="286" r="1.6" fill="#ffffff"/>
-      <!-- hooked beak -->
-      <path d="M498,286 q34,2 34,26 q0,26 -22,32 q10,-16 2,-28 q-8,-12 -18,-14 z" fill="#1c1c1c"/>
-      <path d="M500,320 q16,4 14,18 q-8,10 -20,6 q10,-10 6,-24 z" fill="#e6dccb"/>
-      <path d="M500,292 q22,4 24,20" fill="none" stroke="#4a4a4a" stroke-width="2" opacity="0.6"/>
-    </g>
-  </g>
-
-  <!-- ================= JUGGLING GIN ================= -->
+  <!-- ================= THE BAR ================= -->
   <g>
-    <g>
-      <animateMotion dur="1.6s" begin="0s" repeatCount="indefinite" rotate="0" calcMode="spline" keyTimes="0;1" keySplines="0.35 0.05 0.65 0.95">
-        <mpath xlink:href="#arc"/>
-      </animateMotion>
-      <g>
-        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1.6s" begin="0s" repeatCount="indefinite"/>
-        <use xlink:href="#bottle"/>
-      </g>
+    <path d="M-10,470 L910,470 L910,650 L-10,650 Z" fill="url(#gCounter)"/>
+    <rect x="-10" y="462" width="920" height="20" rx="8" fill="#8a5a30"/>
+    <rect x="-10" y="462" width="920" height="7" rx="4" fill="#c08a4e" opacity="0.75"/>
+    <rect x="-10" y="556" width="920" height="94" fill="#241408" opacity="0.55"/>
+    <g stroke="#1a0e05" stroke-opacity="0.5" stroke-width="2">
+      <path d="M120,482 L120,556"/><path d="M300,482 L300,556"/><path d="M600,482 L600,556"/><path d="M780,482 L780,556"/>
     </g>
-    <g>
-      <animateMotion dur="1.6s" begin="-0.533s" repeatCount="indefinite" rotate="0" calcMode="spline" keyTimes="0;1" keySplines="0.35 0.05 0.65 0.95">
-        <mpath xlink:href="#arc"/>
-      </animateMotion>
-      <g>
-        <animateTransform attributeName="transform" type="rotate" from="0" to="-360" dur="1.6s" begin="-0.533s" repeatCount="indefinite"/>
-        <use xlink:href="#bottle"/>
-      </g>
+    <g fill="#d8a86a" opacity="0.5">
+      <circle cx="210" cy="518" r="3"/><circle cx="450" cy="518" r="3"/><circle cx="690" cy="518" r="3"/>
     </g>
-    <g>
-      <animateMotion dur="1.6s" begin="-1.066s" repeatCount="indefinite" rotate="0" calcMode="spline" keyTimes="0;1" keySplines="0.35 0.05 0.65 0.95">
-        <mpath xlink:href="#arc"/>
-      </animateMotion>
-      <g>
-        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1.6s" begin="-1.066s" repeatCount="indefinite"/>
-        <use xlink:href="#bottle"/>
-      </g>
+    <!-- bottles resting on the bar -->
+    <g transform="translate(150,424) scale(0.62)" opacity="0.9"><use href="#gin" xlink:href="#gin"/></g>
+    <g transform="translate(208,432) scale(0.52)" opacity="0.85"><use href="#gin" xlink:href="#gin"/></g>
+    <g transform="translate(712,428) scale(0.58)" opacity="0.9"><use href="#gin" xlink:href="#gin"/></g>
+    <!-- coupe glass + shaker -->
+    <g opacity="0.9">
+      <path d="M612,438 C612,458 628,470 640,470 C652,470 668,458 668,438 Z" fill="#cfe9f5" fill-opacity="0.35" stroke="#e8f6ff" stroke-opacity="0.6" stroke-width="2"/>
+      <path d="M640,470 L640,492" stroke="#e8f6ff" stroke-opacity="0.6" stroke-width="2.4"/>
+      <path d="M626,494 L654,494" stroke="#e8f6ff" stroke-opacity="0.6" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="654" cy="434" r="6" fill="#7fd6a8"/>
+      <path d="M760,412 L788,412 L794,470 L754,470 Z" fill="#c9ced6"/>
+      <rect x="756" y="404" width="36" height="10" rx="4" fill="#e6eaf0"/>
+      <rect x="766" y="394" width="16" height="12" rx="4" fill="#e6eaf0"/>
+      <rect x="762" y="424" width="6" height="40" rx="3" fill="#ffffff" opacity="0.5"/>
+    </g>
+    <!-- lime on the rim -->
+    <g transform="translate(232,414)">
+      <circle r="13" fill="#a8d84a"/><circle r="9" fill="#d8f08a"/>
+      <g stroke="#8ab63a" stroke-width="1.6"><path d="M-9,0 L9,0"/><path d="M0,-9 L0,9"/><path d="M-6,-6 L6,6"/><path d="M-6,6 L6,-6"/></g>
     </g>
   </g>
 
-  <!-- ================= SCALE BRACKET ================= -->
-  <g stroke="#e8dcc0" stroke-width="2" opacity="0.6" fill="none">
-    <path d="M252,246 V645"/>
-    <path d="M242,246 H262"/>
-    <path d="M242,645 H262"/>
-  </g>
-  <text x="238" y="452" transform="rotate(-90 238 452)" font-family="Verdana, DejaVu Sans, sans-serif" font-size="16" text-anchor="middle" fill="#e8dcc0" opacity="0.75">1.75 m</text>
-
-  <!-- ================= BAR STOOL (left foreground) ================= -->
+  <!-- ================= THE JUGGLING GINS ================= -->
+  <!-- bottle 1 -->
   <g>
-    <ellipse cx="140" cy="556" rx="58" ry="16" fill="#5d3a24"/>
-    <ellipse cx="140" cy="550" rx="58" ry="16" fill="#7a4f2e"/>
-    <g stroke="#3a2215" stroke-width="8" stroke-linecap="round">
-      <path d="M108,566 L96,645"/><path d="M172,566 L184,645"/><path d="M140,570 L140,645"/>
+    <animateMotion dur="2.4s" begin="0s" repeatCount="indefinite" calcMode="spline"
+      keyTimes="0;0.5;1" keyPoints="0;1;0"
+      path="M270,252 C266,178 452,148 618,246" rotate="0"/>
+    <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.94;0.99;1" dur="2.4s" begin="0s" repeatCount="indefinite"/>
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="18;-14;18;-18;18" dur="2.4s" begin="0s" repeatCount="indefinite"/>
+      <use href="#gin" xlink:href="#gin"/>
     </g>
-    <path d="M104,606 H176" stroke="#c9a227" stroke-width="5" opacity="0.7"/>
+  </g>
+  <!-- bottle 2 -->
+  <g>
+    <animateMotion dur="2.4s" begin="-0.8s" repeatCount="indefinite" calcMode="spline"
+      keyTimes="0;0.5;1" keyPoints="0;1;0"
+      path="M270,252 C266,178 452,148 618,246" rotate="0"/>
+    <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.94;0.99;1" dur="2.4s" begin="-0.8s" repeatCount="indefinite"/>
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="18;-14;18;-18;18" dur="2.4s" begin="-0.8s" repeatCount="indefinite"/>
+      <use href="#gin" xlink:href="#gin"/>
+    </g>
+  </g>
+  <!-- bottle 3 -->
+  <g>
+    <animateMotion dur="2.4s" begin="-1.6s" repeatCount="indefinite" calcMode="spline"
+      keyTimes="0;0.5;1" keyPoints="0;1;0"
+      path="M270,252 C266,178 452,148 618,246" rotate="0"/>
+    <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.06;0.94;0.99;1" dur="2.4s" begin="-1.6s" repeatCount="indefinite"/>
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="18;-14;18;-18;18" dur="2.4s" begin="-1.6s" repeatCount="indefinite"/>
+      <use href="#gin" xlink:href="#gin"/>
+    </g>
   </g>
 
-  <!-- caption -->
-  <text x="36" y="686" font-family="Verdana, DejaVu Sans, sans-serif" font-size="15" fill="#d9c7a7" opacity="0.7">pinpin @ #GCU bar - scarlet macaw, 1.75 m, gin cascade</text>
+  <!-- motion glints around the arc -->
+  <g fill="#ffffff">
+    <circle cx="300" cy="300" r="3"><animate attributeName="opacity" values="0.7;0;0.7" dur="1.2s" repeatCount="indefinite"/></circle>
+    <circle cx="420" cy="200" r="2.6"><animate attributeName="opacity" values="0;0.7;0" dur="1.5s" repeatCount="indefinite"/></circle>
+    <circle cx="560" cy="196" r="3"><animate attributeName="opacity" values="0.6;0;0.6" dur="1.8s" repeatCount="indefinite"/></circle>
+    <circle cx="640" cy="280" r="2.4"><animate attributeName="opacity" values="0;0.6;0" dur="1.35s" repeatCount="indefinite"/></circle>
+  </g>
+
+  <!-- ================= FOREGROUND ================= -->
+  <!-- floating dust in the neon light -->
+  <g fill="#ffd9ee" opacity="0.5">
+    <circle cx="120" cy="180" r="2.2"><animate attributeName="cy" values="180;150;180" dur="9s" repeatCount="indefinite"/></circle>
+    <circle cx="800" cy="200" r="2"><animate attributeName="cy" values="200;168;200" dur="11s" repeatCount="indefinite"/></circle>
+    <circle cx="300" cy="130" r="1.8"><animate attributeName="cy" values="130;104;130" dur="8s" repeatCount="indefinite"/></circle>
+    <circle cx="620" cy="150" r="2.4"><animate attributeName="cy" values="150;118;150" dur="10.5s" repeatCount="indefinite"/></circle>
+  </g>
+  <rect width="900" height="640" fill="url(#gVign)"/>
 </svg>
