@@ -744,7 +744,7 @@ else
     | .agents.defaults.restrict_to_workspace = $g
     | .tools.exec.enable_deny_patterns = $g
     | .agents.defaults.max_tool_iterations = $n
-    | .model_list = [{model_name: "strata", model: "vllm/qwen3.8-flash-next", api_base: $url, api_keys: [$key]}]
+    | .model_list = [{model_name: "strata", model: "vllm/qwen3.8-flash-next", api_base: $url, api_keys: [$key], request_timeout: 900}]
     | .tools.web.duckduckgo.enabled = true
     | .tools.install_skill.enabled = false
     | .tools.cron.allow_command = false
@@ -768,6 +768,7 @@ fi
 <summary>What did that block change? (and why are the safety guards off?)</summary>
 
 - `vllm/` = "local OpenAI-compatible server". The model's name after it is not very important, Strata answers to anything.
+- `request_timeout: 900`: how long picoclaw waits for Strata to start answering, in seconds. Its own default is 120, which a model that thinks for a few minutes (or that first reads a long prompt) does not meet: you would get "context deadline exceeded" while Strata is still working. 900 is a ceiling, not a delay: a quick answer is shown at once.
 - `tool_feedback`: the agent tells you in the chat before each tool it uses. That's how you *see what it does* before giving it more power.
 - Web search: DuckDuckGo needs no API key (no Brave key needed, unlike openclaw), but it can be **off by default**, hence the explicit `true`. Brave works too if you have a key: `.tools.web.brave = {"enabled": true, "api_key": "..."}`.
 - The leash for week one: you pick the skills, not the agent, so `install_skill` (it installing skills by itself) and `cron.allow_command` (it scheduling shell commands for itself) are off. Chapter 4 says how to turn them back on when you trust it more.
@@ -791,6 +792,126 @@ picoclaw agent --debug -m "list the files in your workspace"   # same, with the 
 ```
 
 Or the web UI: `picoclaw-launcher -public` in the VM, then http://127.0.0.1:18800 in your PC's browser.
+
+<details markdown="1">
+<summary>The web UI opens but its chat does nothing (GET /pico/ws 404 in the launcher's log)</summary>
+
+The web chat does not talk to the agent directly: the launcher forwards it to the **gateway**, to a chat channel called "pico" that the launcher switches on in the config. The `404` is the gateway saying it has no such channel. That happens when a gateway was already running before the launcher started (typically `picoclaw gateway` from the Telegram part, still open in another window): the launcher attaches to it instead of restarting it, and that older gateway never loaded the channel. The rest of the UI works because it mostly just reads your files. Check it, in the VM:
+
+🦞 **in the VM**
+
+```shell
+P=$(jq -r '.gateway.port // 18790' ~/.picoclaw/config.json)
+echo "chat channel switched on in the config: $(jq -r '.channel_list.pico.enabled' ~/.picoclaw/config.json)"
+ps ax | grep '[p]icoclaw'
+curl -s -o /dev/null -w "the gateway answers /pico/ws with HTTP %{http_code}\n" "http://127.0.0.1:$P/pico/ws"
+```
+
+`true` and `404` mean the diagnosis above (`null` or `false` for the config: the launcher has not switched the channel on yet; start it once, then check again). (`401` is the right answer for a gateway that has the channel: it wants the token the launcher adds. `000` means no gateway is running at all.) The cure is to stop that gateway and let the launcher start its own, which it does by itself when it starts:
+
+🦞 **in the VM**
+
+```shell
+pkill -f 'picoclaw gateway'
+```
+
+Then stop the launcher (Ctrl-C in its window) and start it again with `picoclaw-launcher -public`; the chat works within a few seconds. (Or, without leaving the browser: the gateway's Restart button in the UI, then reload the page.) From now on, while the launcher runs, do not start `picoclaw gateway` yourself: the launcher's gateway already serves Telegram and the other chat apps of the config. Run the check again if the chat is still dead: another answer than `401` tells you what the gateway lacks, and the launcher's own page has the gateway's log.
+
+</details>
+
+<details markdown="1">
+<summary>"LLM call failed after retries ... context deadline exceeded (Client.Timeout exceeded while awaiting headers)", and Strata is still working</summary>
+
+picoclaw asks Strata for the whole answer in one go, and Strata sends nothing back until that answer is finished. picoclaw's patience for that is 120 seconds. The model thinks before it answers (Strata's default is the longest thinking) and an agent's request is big (its rules, its tools, the whole conversation), so a turn can take longer than that, above all the first ones. At 120 seconds picoclaw hangs up, asks again (three tries in all) and shows the error. Strata, which never died, drops a request as soon as its client hangs up, so all that thinking is thrown away and each new try starts over. To be sure, look at Strata's window (or the Requests page of its dashboard, chapter 6) for lines like `done: 1800 tokens in 120 s (...) (..., cancel=True)`, about two minutes each: that is exactly this.
+
+The cure is to let picoclaw wait longer. The config block of this chapter now does it by itself; if you pasted an older one, this adds it (a dated backup first, safe to paste twice):
+
+🦞 **in the VM**
+
+```shell
+cd ~/.picoclaw &&
+cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
+jq '(.model_list[] | select(.model_name == "strata")) |= (.request_timeout = 900)' config.json > config.json.new &&
+mv config.json.new config.json &&
+chmod 600 config.json &&
+echo "request_timeout of the strata model: $(jq '[.model_list[] | select(.model_name == "strata") | .request_timeout][0]' config.json) (900 expected)"
+cd ~
+```
+
+picoclaw reads its config only when it starts, so restart what runs it: Ctrl-C and run again for `picoclaw agent` or `picoclaw gateway`; for the web UI, the gateway's Restart button in the page (then reload the page), or `pkill -f 'picoclaw gateway'` and start the launcher again.
+
+Waiting for minutes is dull, though, so the second lever is to make the model think less. This tells Strata, on every request picoclaw sends, how much to think. `low` is usually plenty for an agent that runs commands and reads the results, but a hard, many-step job gets planned less carefully; `none` is the fastest and the least careful. Try `low`, and go up if the agent gets sloppy:
+
+🦞 **in the VM**
+
+```shell
+EFFORT=low        # EDIT: none (no thinking at all), low, medium, or high (what Strata does when nobody asks)
+
+case "$EFFORT" in
+  none|low|medium|high)
+    cd ~/.picoclaw &&
+    cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
+    jq --arg e "$EFFORT" '(.model_list[] | select(.model_name == "strata")) |= (.extra_body = {reasoning_effort: $e})' config.json > config.json.new &&
+    mv config.json.new config.json &&
+    chmod 600 config.json &&
+    echo "OK: picoclaw now asks Strata for thinking effort $EFFORT (restart it, as above)"
+    cd ~ ;;
+  *) echo "STOP: EFFORT must be none, low, medium or high" ;;
+esac
+```
+
+Pasting the config block of this chapter again starts the model entry from scratch, so it forgets this setting: paste this one again afterwards (`EFFORT=high` is Strata's own behavior). picoclaw's `thinking_level` setting does nothing here, it is not sent to this kind of server, which is why the block uses `extra_body`. To change the level for every app that uses Strata at once, put `"reasoning_effort": "low"` in Strata's own `strata-<model>.json`, next to (not inside) the `args`, and restart Strata.
+
+</details>
+
+<details markdown="1">
+<summary>The agent stalls in the middle of a chat, with "summarize" or "Summarized conversation history" on screen</summary>
+
+picoclaw keeps the whole conversation, and when it passes 20 messages (a tool call and its result count for one each, so a handful of commands is enough) it asks the model, right after a turn, to condense the old part. That is the "summarize" you saw, and the "Summarized conversation history: 6 messages summarized, 17 kept" note. It is one more ordinary request to Strata, and it hurts here:
+
+- Strata answers one request at a time (unless you gave it `"parallel"`, see its `docs/BATCHING.md`), so your next question waits behind the summary, which looks exactly like a stall;
+- the summary's prompt is the old conversation itself, which Strata has to read from its first word, and once the old messages are replaced by the summary the start of the chat has changed, so Strata most likely reads much of the chat again for the next question (its cache only helps while the start of the prompt stays the same);
+- since picoclaw keeps the latest messages (17 of them in your case), the chat is soon over the limit again and the next turn needs another summary;
+- picoclaw gives the summary a fixed two minutes, a number in its source that no setting changes: past that it hangs up (Strata drops the request) and keeps a crude cut-up of the old messages instead of a summary.
+
+A lower thinking level shortens the summary, but nothing else on that list. The cure that costs no quality is not to summarize at all. picoclaw has another way to keep a chat inside the model's window, which needs no request: before each question, if the chat does not fit, it drops the oldest turns. It forgets them for good, so what matters in the long run belongs in the agent's memory or in `USER.md`, not in the middle of a chat. The block below turns the summaries off. It also copies Strata's real context into picoclaw's `context_window`, because that number is now the only thing that decides when old turns are dropped: if picoclaw believed in a bigger window than Strata has, a long chat would end in an error. (With a number in place of `off`, such as 60, summaries stay but start later and come less often.)
+
+🦞 **in the VM**
+
+```shell
+MESSAGES=off      # EDIT: off = never summarize (advised), or a number like 60 = summarize above that many messages (picoclaw's own default: 20)
+
+case "$MESSAGES" in
+  off)         n=100000;    p=1000 ;;
+  ''|*[!0-9]*) n=;          p= ;;
+  *)           n=$MESSAGES; p=75 ;;
+esac
+
+if [ -z "$n" ]; then
+  echo "STOP: MESSAGES must be off, or a whole number like 60"
+else
+  cd ~/.picoclaw &&
+  cp config.json "config.json.$(date +%Y%m%d-%H%M%S).bak" &&
+  jq --argjson n "$n" --argjson p "$p" '.agents.defaults.summarize_message_threshold = $n | .agents.defaults.summarize_token_percent = $p' config.json > config.json.new &&
+  mv config.json.new config.json &&
+  chmod 600 config.json &&
+  echo "OK: MESSAGES=$MESSAGES (restart picoclaw, as above)"
+  base=$(jq -r '[.model_list[] | select(.model_name == "strata") | .api_base][0] // empty' config.json | sed 's|/v1/*$||')
+  ctx=$(curl -s --max-time 5 "$base/health" | jq -r '.max_context // empty' 2>/dev/null)
+  case "$ctx" in
+    ''|*[!0-9]*|0) echo "Strata did not say how much context it has (is it running?): picoclaw's context_window is unchanged, check it by hand" ;;
+    *) jq --argjson c "$ctx" '.agents.defaults.context_window = $c' config.json > config.json.new &&
+       mv config.json.new config.json &&
+       chmod 600 config.json &&
+       echo "context_window set to Strata's context: $ctx" ;;
+  esac
+  cd ~
+fi
+```
+
+Restart picoclaw as above. The thinking level of the fold before this one is then your choice again (`EFFORT=high` is Strata's own behavior). Pasting the config block of this chapter again does not undo these settings.
+
+</details>
 
 Heads up: picoclaw runs its tools without asking you, and with `MODE=open` nothing but the VM stands in its way. The cage is the VM. Watch what it does before giving it more: `picoclaw agent --debug` (or `picoclaw gateway --debug`) prints every command it runs on the `Tool call: exec({...})` lines. A `missing required property "action"` warning is harmless: the model forgot `action: "run"` and retries.
 
@@ -1028,40 +1149,49 @@ Whatever is installed, `/list skills`, `/list mcp` and `/show mcp <server>` (in 
 `web_fetch` reads a plain page. A page built with JavaScript, a button to click, a form or a screenshot need a real browser. There is none in the VM and none can be installed there, so the browser runs on your PC and the agent drives it over the network.
 
 <details markdown="1">
-<summary>Give the agent a real browser (Chrome on your PC, driven from the VM)</summary>
+<summary>Give the agent a real browser (a Chromium on your PC, driven from the VM)</summary>
 
-**Why on the PC.** The built-in `agent-browser` skill needs two programs and neither exists for NetBSD: its own command (no NetBSD build; compiling it needs a Rust toolchain of 1.7 GB, on a root disk of 3.9 GB) and Chrome (`pkgin` has it, with about 110 dependencies and 125 MB, but installing needs root, which you don't have). The kernel has no Linux emulation either, so the Linux builds are out. So: Chrome on your Ubuntu PC, driven by [Playwright MCP](https://github.com/microsoft/playwright-mcp) (Microsoft's MCP server for browsers), and the VM only speaks HTTP to it. QEMU shows your PC to the VM as `10.0.2.2`, which is why the server can listen on `127.0.0.1` only: nothing on your network can reach it.
+**Why on the PC.** The built-in `agent-browser` skill needs two programs and neither exists for NetBSD: its own command (no NetBSD build; compiling it needs a Rust toolchain of 1.7 GB, on a root disk of 3.9 GB) and Chrome (`pkgin` has it, with about 110 dependencies and 125 MB, but installing needs root, which you don't have). The kernel has no Linux emulation either, so the Linux builds are out. So: a Chromium of its own on your Ubuntu PC, driven by [Playwright MCP](https://github.com/microsoft/playwright-mcp) (Microsoft's MCP server for browsers), and the VM only speaks HTTP to it. QEMU shows your PC to the VM as `10.0.2.2`, which is why the server can listen on `127.0.0.1` only: nothing on your network can reach it.
 
-**Step 1, on your PC, once:** Node.js 18+, Google Chrome (skipped if you have it; it is Google's official `.deb`, which also adds Google's apt repository), and a small start script. Pasting it again is harmless:
+**Step 1, on your PC, once:** Node.js 18+, a small start script, and a Chromium of its own for the agent: Playwright's own build ("Chrome for Testing", a few hundred MB under `~/.cache/ms-playwright`). It needs no root and no snap, and your Firefox and everything else stay untouched. The server does not download it by itself when it starts: without it, every call fails with `Browser "chrome-for-testing" is not installed`. Pasting this again is harmless, it skips what is already there. While it downloads it prints a big frame about "dependencies": ignore it.
 
 🖥️ **on your PC**
 
 ```shell
 node_ok() { node -e 'process.exit(+process.versions.node.split(".")[0] >= 18 ? 0 : 1)' 2>/dev/null; }
 node_ok || sudo apt install -y nodejs npm
-command -v google-chrome >/dev/null || {
-  curl -fL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb &&
-  sudo apt install -y /tmp/chrome.deb; rm -f /tmp/chrome.deb; }
 
 cat > ~/browser-mcp.sh <<'EOF'
 #!/bin/sh
-# browser-mcp.sh: a headless Chrome that the agent in the VM can drive (Playwright MCP).
+# browser-mcp.sh: a headless Chromium that the agent in the VM can drive (Playwright MCP).
 # It listens on this PC only (127.0.0.1:8931); the VM reaches it as 10.0.2.2:8931. Ctrl-C stops it.
 # Its files (screenshots, page snapshots) go to shots/ in the shared folder, which is /mnt/shots in the VM.
 SHARE="${SHARE:-$HOME/smolBSD/share}"
 mkdir -p "$SHARE/shots" && cd "$SHARE" || exit 1
 exec npx -y @playwright/mcp@0.0.83 \
-  --browser chrome --headless --isolated \
+  --browser chromium --headless --isolated \
   --host 127.0.0.1 --port 8931 --allowed-hosts 10.0.2.2:8931 \
   --image-responses omit --output-dir shots
 EOF
 
-if node_ok && command -v google-chrome >/dev/null; then
-  echo "OK: Node $(node --version), $(google-chrome --version). Next: sh ~/browser-mcp.sh"
+npx -y @playwright/mcp@0.0.83 install-browser --no-shell --no-remove chrome-for-testing
+
+B=$(npx -y @playwright/mcp@0.0.83 install-browser --dry-run --no-shell chrome-for-testing 2>/dev/null | sed -n 's/^ *Install location: *//p' | head -1)/chrome-linux64/chrome
+if ! node_ok; then
+  echo "STOP: Node.js 18+ is needed (https://nodejs.org)"
+elif [ ! -x "$B" ]; then
+  echo "STOP: the Chromium download did not finish (network?): paste this block again"
+elif ldd "$B" 2>/dev/null | grep -q 'not found'; then
+  echo "STOP: Chromium is there, but your Ubuntu lacks libraries it needs:"
+  ldd "$B" 2>/dev/null | grep 'not found'
+  echo "Install them with the next line, then paste this block again:"
+  echo '  sudo env "PATH=$PATH" npx -y -p @playwright/mcp@0.0.83 playwright install-deps chromium'
 else
-  echo "STOP: Node.js 18+ and Google Chrome are both needed (see above; Node: https://nodejs.org)"
+  echo "OK: Node $(node --version), $("$B" --version). Next: sh ~/browser-mcp.sh"
 fi
 ```
+
+Prefer Google Chrome to this? Install Google's official `.deb` (`https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb`, with `sudo apt install` on the downloaded file), and in `~/browser-mcp.sh` replace `--browser chromium` with `--browser chrome`. The Chromium of this step is pinned to the Playwright MCP version above: to move to a newer one, change `0.0.83` in the script and in this block, and paste the block again.
 
 **Step 2, on your PC:** start it, and leave that terminal open (chapter 6 starts it for you from then on). The first start downloads Playwright MCP, then it says `Listening on ...:8931`:
 
@@ -1088,7 +1218,7 @@ description: Use a real web browser: open a page, read it, click, fill a form, t
 
 # browser
 
-A real Chrome runs on the user's PC. You drive it with the browser_* tools (browser_navigate, browser_snapshot, browser_click, browser_type, browser_fill_form, browser_take_screenshot, browser_tabs...).
+A real browser (Chromium) runs on the user's PC. You drive it with the browser_* tools (browser_navigate, browser_snapshot, browser_click, browser_type, browser_fill_form, browser_take_screenshot, browser_tabs...).
 
 1. browser_navigate with the URL.
 2. browser_snapshot: the page as text, with a ref like e12 for each link, button and field. Read it, do not guess refs.
@@ -1116,7 +1246,7 @@ picoclaw agent -m "Use the browser skill: open https://example.com, tell me the 
 
 **What to know before you let it loose:**
 
-- The browser is **headless** (no window) and **isolated**: a throwaway profile, no cookies, no logins, forgotten when it closes. Don't log in to anything in it.
+- The browser is **headless** (no window) and **isolated**: a throwaway profile, no cookies, no logins, forgotten when it closes. Don't log in to anything in it. Like every browser Playwright starts, it also runs without Chromium's own sandbox (which is why it needs no root and no special Ubuntu rule), so treat it as a place for nothing you care about.
 - It has **no password**. Whatever reaches port 8931 of your PC can drive the browser: the VM (that is the point), but also any program on your PC. It only answers to the name `10.0.2.2:8931`, so a web page you visit can't talk to it.
 - The browser lives on **your PC's network**: it can open your router's admin page or `http://127.0.0.1:11434` (Strata), which the VM itself could not. The skill tells the agent not to; that is a request, not a wall.
 - Opening `file://` is blocked, and file uploads can only read the shared folder (that is where the script starts it from).
@@ -1252,7 +1382,7 @@ Everything is installed. A normal day is: one command to start, talk to it, look
 
 ### Start everything with one command
 
-Three things must run on your PC: Strata (the brain), the browser server if you did the browser part of chapter 4, and the VM (the hands). This script starts the ones that are not running yet, each in its own window of a `tmux` session called `agent`, and drops you in the VM's window. Create it once:
+Three things must run on your PC: Strata (the brain), the browser server if you did the browser part of chapter 4, and the VM (the hands); a fourth, Strata's terminal dashboard, is optional (see the fold below). This script starts the ones that are not running yet, each in its own window of a `tmux` session called `agent`, and drops you in the VM's window. Create it once:
 
 🖥️ **on your PC**
 
@@ -1261,8 +1391,8 @@ cat > ~/agent-up.sh <<'EOF'
 #!/bin/sh
 # agent-up.sh: bring the whole local agent up with one command, in a tmux session called "agent".
 #   sh ~/agent-up.sh          start what is not running yet, then go to the VM's window
-#   sh ~/agent-up.sh stop     stop Strata and the browser (the VM: type exit in each of its panes)
-# Windows: pc (a free shell), strata (the brain), vm (the agent), browser (if set up). Ctrl-a w lists them.
+#   sh ~/agent-up.sh stop     stop Strata, the browser and the monitor (the VM: type exit in each of its panes)
+# Windows: pc (a free shell), strata (the brain), vm (the agent), browser and monitor (if set up). Ctrl-a w lists them.
 # This tmux answers to Ctrl-a, so it never fights with the VM's own tmux (Ctrl-b).
 
 S=agent
@@ -1275,15 +1405,16 @@ command -v tmux >/dev/null || { echo "ERROR: sudo apt install tmux"; exit 1; }
 if [ "$1" = stop ]; then
   tmux kill-window -t "$S:strata" 2>/dev/null
   tmux kill-window -t "$S:browser" 2>/dev/null
-  echo "Strata and the browser are stopped. The VM: go to its window (Ctrl-a w) and type exit in each pane."
+  tmux kill-window -t "$S:monitor" 2>/dev/null
+  echo "Strata, the browser and the monitor are stopped. The VM: go to its window (Ctrl-a w) and type exit in each pane."
   exit 0
 fi
 
 running() { ss -tln 2>/dev/null | grep -q ":$1 "; }                       # is something listening on this port?
 there() { tmux list-windows -t "$S" -F '#W' 2>/dev/null | grep -qx "$1"; }   # is there a window with this name?
 
-start() {   # start NAME PORT COMMAND
-  if running "$2" || there "$1"; then echo "$1: already running"; return; fi
+start() {   # start NAME PORT COMMAND   (PORT empty: only the window's name tells if it runs)
+  if { [ -n "$2" ] && running "$2"; } || there "$1"; then echo "$1: already running"; return; fi
   tmux new-window -d -t "$S:" -n "$1" "$3; echo; echo '--- $1 has stopped. Enter closes this window ---'; read x"
   echo "$1: started"
 }
@@ -1296,6 +1427,7 @@ tmux has-session -t "$S" 2>/dev/null || {
 start strata 11434 "cd '$LLM_DIR/Strata' && ./setup.sh --no-browser"
 start vm 2289 "cd '$HOME/smolBSD' && ./smoler.sh run clawd-amd64:latest -c 2 -m 1024 -w '$SHARE'"
 if [ -f ~/browser-mcp.sh ]; then start browser 8931 "sh '$HOME/browser-mcp.sh'"; fi
+if [ -f ~/strata-monitor.sh ]; then start monitor "" "sh '$HOME/strata-monitor.sh'"; fi
 
 tmux select-window -t "$S:vm" 2>/dev/null
 if [ -n "$TMUX" ]; then tmux switch-client -t "$S"; else exec tmux attach -t "$S"; fi
@@ -1304,6 +1436,50 @@ sh ~/agent-up.sh
 ```
 
 From now on it is only `sh ~/agent-up.sh`. Strata needs a minute or two to load the model; its window (`Ctrl-a w` lists the windows) says when it is ready. Two Strata models installed (chapter 1, Huihui)? That window asks which one to start. Inside the VM, type `picoclaw agent` (or `picoclaw gateway` in a second VM window for Telegram), and the keys are the ones of the tmux table in chapter 2, with `Ctrl-a` for the PC and `Ctrl-b` for the VM. `Ctrl-a d` leaves and lets everything run; `tmux attach -t agent` comes back.
+
+<details markdown="1">
+<summary>Watch Strata in the terminal (its own dashboard, instead of its web page)</summary>
+
+Strata has a terminal dashboard, `strata monitor`: speed of the answers, the requests in flight and finished, the engine, the GPU's load and memory, its recent log. It only reads (it cannot change anything), `q` leaves it and Strata keeps running. It needs one extra Python package, [Textual](https://textual.textualize.io/), which goes into Strata's own environment, so nothing else on your PC changes. This block installs it and creates a small script that waits for Strata to be up, then opens the dashboard with your key:
+
+🖥️ **on your PC**
+
+```shell
+. ~/.llm-dir
+cd "${LLM_DIR:?do chapter 0 first}/Strata" && .venv/bin/pip install -q --disable-pip-version-check -r requirements-monitor.txt &&
+cat > ~/strata-monitor.sh <<'EOF'
+#!/bin/sh
+# strata-monitor.sh: Strata's own terminal dashboard (read-only). q leaves it, Strata keeps running.
+[ -r ~/.llm-dir ] && . ~/.llm-dir
+[ -r ~/.strata-key ] && . ~/.strata-key
+cd "${LLM_DIR:?do chapter 0 first}/Strata" || exit 1
+STRATA_API_KEY="$STRATA_KEY"; export STRATA_API_KEY
+U=http://127.0.0.1:11434
+printf 'waiting for Strata'
+until .venv/bin/python strata.py status --url "$U" >/dev/null 2>&1; do
+  [ $? -eq 4 ] && { echo " the key was refused: is STRATA_KEY in ~/.strata-key the one Strata uses?"; exit 1; }
+  printf .; sleep 5
+done
+echo
+exec .venv/bin/python strata.py monitor --url "$U"
+EOF
+echo "OK: run  sh ~/strata-monitor.sh  in a terminal (or let sh ~/agent-up.sh open it in its own window)"
+```
+
+From now on `sh ~/agent-up.sh` also opens a `monitor` window (`Ctrl-a w` lists the windows). It works the same on its own, in any terminal of your PC. In the dashboard:
+
+| Key | Does |
+| --- | --- |
+| `1` to `6` | the pages: Overview, Serving, Requests, Engine, Hardware, Logs (`?` shows the help) |
+| `Up` / `Down`, then `Enter` | pick a request or a row, and open its details |
+| `/` | filter what is listed |
+| `Space` | freeze the screen to read it, again to go on |
+| `r`, `t` | refresh now, change the colors |
+| `q` | leave (Strata keeps running) |
+
+A terminal of at least 128 columns by 36 rows shows a bigger dashboard with graphs; a smaller one shows compact pages. For a single look, without the interface: `cd "$LLM_DIR/Strata" && STRATA_API_KEY="$STRATA_KEY" .venv/bin/python strata.py status --url http://127.0.0.1:11434` (after `. ~/.llm-dir; . ~/.strata-key`). If the script keeps printing dots, Strata does not answer yet: it takes a minute or two to load the model, and its own window says when it is ready.
+
+</details>
 
 ### What you do with it
 
@@ -1317,6 +1493,7 @@ From now on it is only `sh ~/agent-up.sh`. Strata needs a minute or two to load 
 | start over (it drifts, it loops, the context is full) | `/clear` in the chat; `/context` shows how full it is |
 | ask a side question without disturbing the task | `/btw <question>` |
 | give it a file, or get one back | the shared folder: `~/smolBSD/share` on your PC is `/mnt` in the VM |
+| see how Strata is doing (speed, GPU, requests) | `sh ~/strata-monitor.sh`, or the `monitor` window of `agent-up.sh` (fold above) |
 | see what it did while I was away | `ls -lt /mnt ~/.picoclaw/workspace` in the VM, and `~/smolBSD/share/shots` for the browser |
 | try something risky | `sh /mnt/picoclaw-keep.sh save` first (chapter 3); `restore` undoes it |
 | give it a new skill | chapter 4: read the `SKILL.md` first, install it yourself |
@@ -1325,7 +1502,7 @@ A few habits that keep it safe: put in the shared folder only what the VM may se
 
 ### When you are done, and when things change
 
-When you game or render, free the GPU: `sh ~/agent-up.sh stop` (Strata and the browser stop; in the VM window, `exit` in each pane shuts the VM down cleanly). Next morning, `sh ~/agent-up.sh` again.
+When you game or render, free the GPU: `sh ~/agent-up.sh stop` (Strata, the browser and the monitor stop; in the VM window, `exit` in each pane shuts the VM down cleanly). Next morning, `sh ~/agent-up.sh` again.
 
 Now and then: Strata needs no update to keep working, so update it only when you want something new in it: `. ~/.llm-dir; cd "$LLM_DIR/Strata" && ./update.sh`, then restart it. That update compiles the engine again (a few minutes). If it ends with `could not compile the updated engine`, nothing is lost, the old engine still runs, but each start retries the compile: the fold after the install block in chapter 1 says what to do. picoclaw updates itself every time the VM boots; for smolBSD, `cd ~/smolBSD && git pull`, and remember that a rebuilt or freshly pulled VM image is a new, empty VM: `save` before, `restore` after. Your router gave your PC another address? Chapter 1's check block prints it, and chapter 3's block takes it.
 
@@ -1352,10 +1529,12 @@ Now and then: Strata needs no update to keep working, so update it only when you
 | Agent says it has no model / wrong model | `agents.defaults.model_name` isn't a `model_list[].model_name` | both are `strata` in the block above; `jq '.agents.defaults, .model_list' ~/.picoclaw/config.json` |
 | Agent keeps getting "blocked by safety guard", "access denied", "path escapes workspace" or "dangerous pattern" and loops | picoclaw's workspace guard and shell deny list refuse what a small model tries (`/tmp`, `/proc`, `$(...)`, `kill`...); it retries until the call cap | paste the chapter 3 config block again with `MODE=open` (guards off, the VM is the cage); the fold after it says why |
 | I want my agent back after a rebuild, an update or a bug | its whole state is one folder, `~/.picoclaw`, and the VM is disposable | "Save and restore the agent", right after, in chapter 3 |
+| `LLM call failed after retries ... context deadline exceeded (Client.Timeout exceeded while awaiting headers)`, while Strata is still working | picoclaw waits 120 s for Strata to start answering and hangs up; a long thinking (or a big prompt) takes more | the fold right after "Talk to it" in chapter 3: `request_timeout` 900 on the model, and a lower thinking level |
+| The agent stalls mid-chat while "summarize" shows, or after "Summarized conversation history: N messages summarized" | picoclaw condenses long chats with one more request to Strata (which does one thing at a time), so your next question waits behind it | the second fold after "Talk to it" in chapter 3: `MESSAGES=off` (no summaries) |
 | Answers, but never uses a tool | model not tool-capable (Ollama), or `exec`/`web` switched off | `picoclaw agent --debug -m "list your tools"` |
 | Web search finds nothing | DuckDuckGo disabled, or the VM has no internet | `jq .tools.web ~/.picoclaw/config.json`; `curl -sI https://duckduckgo.com` |
 | `picoclaw mcp test browser` fails, or the agent says it can't browse | the browser server isn't running on the PC, or the VM can't reach it | on the PC: `sh ~/browser-mcp.sh` must be running, and `curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: 10.0.2.2:8931' http://127.0.0.1:8931/mcp` must print `400` (that is the server answering); then in the VM `picoclaw mcp list --status` |
-| The browser server starts, but every call fails with an error saying that "chrome" is not found or not installed | Google Chrome isn't installed (or isn't at `/opt/google/chrome`) | step 1 of the browser fold in chapter 4, then `google-chrome --version` |
+| The browser server starts, but every call fails with `Browser "chrome-for-testing" is not installed` (or `chrome` not found, if you switched to Google Chrome) | the Chromium download of step 1 never ran or did not finish | step 1 of the browser fold in chapter 4 (paste it again), then restart `sh ~/browser-mcp.sh` |
 | The agent tries `agent-browser` and fails | the built-in skill is still there, or the `browser` skill is missing | `picoclaw skills list`, then step 3 of the browser fold |
 | Telegram bot is silent | wrong token; `allow_from` isn't your numeric ID; gateway not running | `picoclaw gateway --debug`, read it |
 | Telegram `409 Conflict` | two gateways poll the same bot token (e.g. an old VM) | stop one |
@@ -1487,6 +1666,6 @@ picoclaw mcp add --deferred \
 - Inference: [Strata](https://github.com/Niko1221/Strata) ([models](https://github.com/Niko1221/Strata/blob/main/docs/MODELS.md), [Unsloth by hand](https://github.com/Niko1221/Strata/blob/main/docs/UNSLOTH_Q4.md)), [Huihui QFN](https://huggingface.co/huihui-ai/Huihui-Qwen3.8-Flash-Next-abliterated-v2-GGUF), [Ollama](https://ollama.com), [llmfit](https://github.com/AlexsJones/llmfit)
 - The VM: [smolBSD](https://github.com/NetBSDfr/smolBSD), its [smolClaw page](https://github.com/NetBSDfr/smolBSD/tree/main/service/clawd) and [local-model notes](https://github.com/NetBSDfr/smolBSD/blob/main/service/clawd/LOCAL.md)
 - The agent: [sipeed/picoclaw](https://github.com/sipeed/picoclaw), [NetBSD builds](https://github.com/afjcjsbx/picoclaw/releases); docs: [Telegram](https://github.com/sipeed/picoclaw/blob/main/docs/channels/telegram/README.md), [MCP CLI](https://github.com/sipeed/picoclaw/blob/main/docs/reference/mcp-cli.md), [tools](https://github.com/sipeed/picoclaw/blob/main/docs/reference/tools_configuration.md), [debugging / tool feedback](https://github.com/sipeed/picoclaw/blob/main/docs/operations/debug.md), [security configuration](https://github.com/sipeed/picoclaw/blob/main/docs/security/security_configuration.md)
-- A browser: [Playwright MCP](https://github.com/microsoft/playwright-mcp), [Google Chrome](https://www.google.com/chrome/)
+- A browser: [Playwright MCP](https://github.com/microsoft/playwright-mcp), [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/)
 - Skills: [ClawHub](https://clawhub.ai), [REA](https://github.com/morluto/rea) ([site](https://rea.tools), [npm](https://www.npmjs.com/package/rea-agents), [skills.sh](https://skills.sh/morluto/rea/reverse-engineer-anything)), [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases), [JDK](https://adoptium.net), [Node.js](https://nodejs.org/en/download)
 - Telegram: [@BotFather](https://t.me/BotFather), [@userinfobot](https://t.me/userinfobot)
