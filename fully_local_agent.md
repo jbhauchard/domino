@@ -1504,6 +1504,21 @@ A few habits that keep it safe: put in the shared folder only what the VM may se
 
 When you game or render, free the GPU: `sh ~/agent-up.sh stop` (Strata, the browser and the monitor stop; in the VM window, `exit` in each pane shuts the VM down cleanly). Next morning, `sh ~/agent-up.sh` again.
 
+Sharing the card with ComfyUI without stopping Strata: `agent-up.sh stop` is the blunt way. If you only want to draw, hand ComfyUI most of the VRAM and keep Strata awake. Put these lines in your PC's `~/.bashrc` once:
+
+🖥️ **on your PC**
+
+```shell
+# --- sharing the card between Strata and ComfyUI ---
+strata-vram() { curl -s -m 15 -X POST http://127.0.0.1:11434/v1/vram \
+  -H "Authorization: Bearer $(tr -d ' \t\r\n' < ~/.strata-key)" \
+  -H "Content-Type: application/json" -d "{\"reserve_mib\": $1}"; echo; }
+alias comfy-up='strata-vram 12288 && cd ~/ComfyUI2 && source bin/activate && cd ComfyUI && PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python main.py --enable-manager --listen --verbose 2>&1 | tee comfy.log'
+alias comfy-down='pkill -f "ComfyUI2/ComfyUI/main.py" && echo "ComfyUI2 stopped."; strata-vram 0'
+```
+
+`comfy-up` tells Strata to keep ~12 GiB of VRAM and starts ComfyUI in the rest; `comfy-down` stops ComfyUI and gives the whole card back to Strata (its memory is elastic, so no restart). Adjust the paths to your own ComfyUI checkout.
+
 Now and then: Strata needs no update to keep working, so update it only when you want something new in it: `. ~/.llm-dir; cd "$LLM_DIR/Strata" && ./update.sh`, then restart it. That update compiles the engine again (a few minutes). If it ends with `could not compile the updated engine`, nothing is lost, the old engine still runs, but each start retries the compile: the fold after the install block in chapter 1 says what to do. picoclaw updates itself every time the VM boots; for smolBSD, `cd ~/smolBSD && git pull`, and remember that a rebuilt or freshly pulled VM image is a new, empty VM: `save` before, `restore` after. Your router gave your PC another address? Chapter 1's check block prints it, and chapter 3's block takes it.
 
 ---
